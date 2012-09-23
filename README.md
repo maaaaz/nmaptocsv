@@ -16,7 +16,7 @@ Usage
 Pass the Nmap output via stdin or from a specified file (-i)
 The processed dump can be collected at stdout or to a specified file (-o)
 
-* Your Nmap normal output from stdin
+#### Your Nmap normal output from stdin
 ```
 $ nmap -p- 10.0.0.0/24 | python nmaptocsv.py
 
@@ -31,6 +31,7 @@ IPProtocol;Port;Service
 ;111;tcp;rpcbind
 ;48175;tcp;
 10.0.0.2;5432;tcp;postgresql
+
 ```
 
 Dependencies
