@@ -13,10 +13,10 @@ Features
 
 Usage
 -----
-Pass the Nmap output via stdin or from a specified file (-i)
-The processed dump can be collected at stdout or to a specified file (-o)
+Pass the Nmap output via stdin or from a specified file (-i).
+The processed dump can be collected at stdout or to a specified file (-o).
 
-#### Your Nmap normal output from stdin
+#### Nmap normal output
 ```
 $ nmap -p- 10.0.0.0/24 | python nmaptocsv.py
 
@@ -32,6 +32,9 @@ IPProtocol;Port;Service
 ;48175;tcp;
 10.0.0.2;5432;tcp;postgresql
 
+```
+
+### Nmap grepable format
 ```
 
 Dependencies
@@ -53,7 +56,3 @@ If not, see http://www.gnu.org/licenses/.
 Contact
 -------
 * Thomas Debize < tdebize at mail d0t com >
-
-Greetings
----------
-* awe
