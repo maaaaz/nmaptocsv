@@ -37,7 +37,6 @@ IPProtocol;Port;Service
 ### Nmap grepable format
 ```
 $ cat gnmap_format 
-
 # Nmap 5.00 scan initiated Sun Sep 23 12:27:11 2012 as: nmap -p- -oA nmap_5 localhost 
 Host: 127.0.0.1 (localhost)	Ports: 25/open/tcp//smtp///, 111/open/tcp//rpcbind///, 48175/open/tcp/////	Ignored State: closed (65532)
 # Nmap done at Sun Sep 23 12:27:23 2012 -- 1 IP address (1 host up) scanned in 11.85 seconds
