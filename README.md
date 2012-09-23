@@ -13,10 +13,25 @@ Features
 
 Usage
 -----
-Pass the Nmap output via stdin or from a specified file (-i).
+Pass the Nmap output via stdin or from a specified file (-i).  
 The processed dump can be collected at stdout or to a specified file (-o).
 
-#### Nmap normal output
+### Usage
+```
+$ python nmaptocsv.py -h
+Usage: nmaptocsv.py [options]
+
+Options:
+  -h, --help            show this help message and exit
+  -i INPUT, --input=INPUT
+                        Nmap scan output file in normal format (stdin if not
+                        specified)
+  -o OUTPUT, --output=OUTPUT
+                        csv output filename (stdout if not specified)
+
+```
+
+### Nmap normal output
 ```
 $ nmap -p- 10.0.0.0/24 | python nmaptocsv.py
 
