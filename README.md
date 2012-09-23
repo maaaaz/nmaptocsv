@@ -67,7 +67,7 @@ IP;Protocol;Port;Service
 
 Dependencies
 ------------
-* python >= 2.6
+* python >= 2.4
 
 
 Copyright and license
