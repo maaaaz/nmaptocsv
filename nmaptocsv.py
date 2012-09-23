@@ -37,7 +37,7 @@ def split_grepable_ports(raw_string) :
 
 		@param raw_string : string like '25/open/tcp//smtp///, 111/open/tcp//rpcbind///, 48175/open/tcp/////'
 		
-		@rtype : return a well-formed tuple like '[('25', 'tcp', 'smtp', ''), ('111', 'tcp', 'rpcbind', ''), ('48175', 'tcp', 'unknown', '')]
+		@rtype : return a well-formed tuple list like '[('25', 'tcp', 'smtp', ''), ('111', 'tcp', 'rpcbind', ''), ('48175', 'tcp', 'unknown', '')]
 	"""
 	# Nmap Grepout output Port
 	p_grepable_port = re.compile('^(?P<number>[\d]+)\/open\/(?P<protocol>tcp|udp)\/\/(?P<service_name>[\w\S]*)\/\/(?:[/]|(?P<version>.*))\/$')
