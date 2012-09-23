@@ -19,7 +19,8 @@ The processed dump can be collected at stdout or to a specified file (-o)
 * Your Nmap normal output from stdin
 ```
 $ nmap -p- 10.0.0.0/24 | python nmaptocsv.py
-IP;Protocol;Port;Service
+
+IPProtocol;Port;Service
 10.0.0.1;21;tcp;ftp
 ;53;tcp;domain
 ;80;tcp;http
