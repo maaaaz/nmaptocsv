@@ -16,7 +16,7 @@ Usage
 Pass the Nmap output via stdin or from a specified file (-i).  
 The processed dump can be collected at stdout or to a specified file (-o).
 
-### Usage
+### Options
 ```
 $ python nmaptocsv.py -h
 Usage: nmaptocsv.py [options]
