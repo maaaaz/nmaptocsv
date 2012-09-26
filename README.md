@@ -8,7 +8,7 @@ A simple python script to convert Nmap output to CSV
 
 Features
 --------
-* Support of Nmap version 5 & 6 normal format output (-oA)
+* Support of Nmap version 5 & 6 normal format output (default format)
 * Support of Nmap any version Grepable format output (-oG)
 
 Usage
@@ -31,7 +31,7 @@ Options:
 
 ```
 
-### Nmap normal output
+### Nmap normal output (default format)
 ```
 $ nmap -p- 10.0.0.0/24 | python nmaptocsv.py
 
@@ -49,10 +49,10 @@ IPProtocol;Port;Service
 
 ```
 
-### Nmap Grepable format
+### Nmap Grepable format (-oG)
 ```
 $ cat scan.gnmap 
-# Nmap 5.00 scan initiated Sun Sep 23 12:27:11 2012 as: nmap -p- -oA scan localhost 
+# Nmap 5.00 scan initiated Sun Sep 23 12:27:11 2012 as: nmap -p- -oG scan.gnmap localhost 
 Host: 127.0.0.1 (localhost)	Ports: 25/open/tcp//smtp///, 111/open/tcp//rpcbind///, 48175/open/tcp/////	Ignored State: closed (65532)
 # Nmap done at Sun Sep 23 12:27:23 2012 -- 1 IP address (1 host up) scanned in 11.85 seconds
 
