@@ -51,10 +51,10 @@ def split_grepable_ports(raw_string) :
 		
 		port_slice = p_grepable_port.match(open_port)
 		if port_slice :
-			number = port_slice.group('number')
-			protocol = port_slice.group('protocol')
-			service_name = port_slice.group('service_name')
-			version = port_slice.group('version')
+			number = str(port_slice.group('number'))
+			protocol = str(port_slice.group('protocol'))
+			service_name = str(port_slice.group('service_name'))
+			version = str(port_slice.group('version'))
 			
 			port_tuple = (number, protocol, service_name, version)
 			result_list.append(port_tuple)
@@ -74,8 +74,8 @@ def parse(fd) :
 	p_ip_elementary = '(?:[\d]{1,3})\.(?:[\d]{1,3})\.(?:[\d]{1,3})\.(?:[\d]{1,3})'
 	
 	# Nmap normal output target
-	p_ip_nmap5 = '(?:^Interesting.*on\s+(?:[\D]*\s\()?(?P<ip_nmap5>%s)\)\:?$)' % p_ip_elementary
-	p_ip_nmap6 = '(?:^Nmap.*for\s+(?:[\D]*\s\()?(?P<ip_nmap6>%s)\)?$)' % p_ip_elementary
+	p_ip_nmap5 = '(?:^Interesting.*on\s+(?:.*\()?(?P<ip_nmap5>%s)\)\:?$)' % p_ip_elementary
+	p_ip_nmap6 = '(?:^Nmap.*for\s+(?:.*\()?(?P<ip_nmap6>%s)\)?$)' % p_ip_elementary
 	
 	p_ip = re.compile('%s|%s' % (p_ip_nmap5, p_ip_nmap6))
 	
@@ -83,7 +83,7 @@ def parse(fd) :
 	p_port = re.compile('^([\d]+)\/(tcp|udp)\s*open\s*([\w\S]*)(?:\s*(.*))?$')
 	
 	# Nmap Grepable output 
-	p_grepable = re.compile('^Host\:\s+(?P<ip>%s)\s+\([\w]+\)\s+Ports\:\s+(?P<ports>.*)\s+Ignored' % p_ip_elementary )
+	p_grepable = re.compile('^Host\:\s+(?P<ip>%s)\s+\(.*\)\s+Ports\:\s+(?P<ports>.*)\t' % p_ip_elementary )
 	
 
 	IPs = {}
@@ -132,7 +132,7 @@ def generate_csv(fd, results) :
 	if results != {} :
 		spamwriter = csv.writer(fd, delimiter=';')
 		
-		csv_header = ['IP', 'Protocol', 'Port', 'Service']
+		csv_header = ['IP', 'Protocol', 'Port', 'Service', 'Version']
 		spamwriter.writerow(csv_header)
 		
 		for IP in results :
@@ -142,12 +142,13 @@ def generate_csv(fd, results) :
 				port_number = port_tuple[0]
 				port_protocol = port_tuple[1]
 				port_service_name = port_tuple[2]
+				port_service_version = port_tuple[3]
 				
 				# Write the IP once for all
 				if index > 0 :
-					line = ['', port_number, port_protocol, port_service_name]
+					line = ['', port_number, port_protocol, port_service_name, port_service_version]
 				else :
-					line = [IP, port_number, port_protocol, port_service_name]
+					line = [IP, port_number, port_protocol, port_service_name, port_service_version]
 				
 				spamwriter.writerow(line)
 	return
