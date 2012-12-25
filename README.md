@@ -52,7 +52,7 @@ IP;Port;Protocol;Service;Version
 ### Nmap Grepable format (-oG)
 ```
 $ cat scan.gnmap 
-# Nmap 6.25 scan initiated Tue Dec 25 15:23:48 2012 as: nmap --reason -A -sV -v -p- -sX -oG test localhost
+# Nmap 6.25 scan initiated Tue Dec 25 15:23:48 2012 as: nmap --reason -A -sV -v -p- -sX -oA scan localhost
 # Ports scanned: TCP(65535;1-65535) UDP(0;) SCTP(0;) PROTOCOLS(0;)
 Host: 127.0.0.1 (localhost)	Status: Up
 Host: 127.0.0.1 (localhost)	Ports: 80/open/tcp//http?//, 5432/open/tcp//postgresql/PostgreSQL DB 8.4.1 - 8.4.11/	Ignored State: closed (65533)	OS: Linux 2.4.21
