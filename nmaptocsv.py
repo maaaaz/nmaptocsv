@@ -20,7 +20,7 @@
 # along with nmaptocsv.  If not, see <http://www.gnu.org/licenses/>.
 
 # Global imports
-import sys, re, csv
+import sys, re, csv, struct, socket
 
 # OptionParser imports
 from optparse import OptionParser
@@ -31,6 +31,18 @@ option_1 = { 'name' : ('-o', '--output'), 'help' : 'csv output filename (stdout 
 
 options = [option_0, option_1]
 
+def dottedQuadToNum(ip):
+    """
+		Convert decimal dotted quad string IP to long integer
+	"""
+    return struct.unpack('!L',socket.inet_aton(ip))[0]
+
+def numToDottedQuad(n):
+    """
+		Convert long int IP to dotted quad string
+	"""
+    return socket.inet_ntoa(struct.pack('!L',n))
+
 def split_grepable_ports(raw_string) :
 	"""
 		Split the port raw list to a neat tuple list
@@ -39,25 +51,28 @@ def split_grepable_ports(raw_string) :
 		
 		@rtype : return a well-formed tuple list like '[('25', 'tcp', 'smtp', ''), ('111', 'tcp', 'rpcbind', ''), ('48175', 'tcp', 'unknown', '')]
 	"""
-	# Nmap Grepout output Port
-	p_grepable_port = re.compile('^(?P<number>[\d]+)\/open\/(?P<protocol>tcp|udp)\/\/(?P<service_name>[\w\S]*)\/\/(?:[/]|(?P<version>.*))\/$')
+	# Nmap Grepable output Port
 	
 	result_list = []
 	
 	all_ports = raw_string.split(', ')
+	
+	# keep only open ports
 	open_ports_list = filter(lambda p: '/open/' in p, all_ports)
 	
 	for open_port in open_ports_list :
 		
-		port_slice = p_grepable_port.match(open_port)
-		if port_slice :
-			number = str(port_slice.group('number'))
-			protocol = str(port_slice.group('protocol'))
-			service_name = str(port_slice.group('service_name'))
-			version = str(port_slice.group('version'))
-			
-			port_tuple = (number, protocol, service_name, version)
-			result_list.append(port_tuple)
+		splitted_fields = open_port.split('/')
+
+		# extract each field
+		number, state, protocol, dunno, service_name = splitted_fields[0:5]
+		version = " ".join(splitted_fields[5:-1])
+		eol = splitted_fields[-1]
+		
+		# group the tuple
+		port_tuple = (number, protocol, service_name, version)
+		result_list.append(port_tuple)
+		
 	
 	return result_list
 
@@ -74,7 +89,7 @@ def parse(fd) :
 	p_ip_elementary = '(?:[\d]{1,3})\.(?:[\d]{1,3})\.(?:[\d]{1,3})\.(?:[\d]{1,3})'
 	
 	# Nmap normal output target
-	p_ip_nmap5 = '(?:^Interesting.*on\s+(?:.*\()?(?P<ip_nmap5>%s)\)\:?$)' % p_ip_elementary
+	p_ip_nmap5 = '(?:^Interesting.*on\s+(?:.*\()?(?P<ip_nmap5>%s)\)?\:?$)' % p_ip_elementary
 	p_ip_nmap6 = '(?:^Nmap.*for\s+(?:.*\()?(?P<ip_nmap6>%s)\)?$)' % p_ip_elementary
 	
 	p_ip = re.compile('%s|%s' % (p_ip_nmap5, p_ip_nmap6))
@@ -83,21 +98,24 @@ def parse(fd) :
 	p_port = re.compile('^([\d]+)\/(tcp|udp)\s*open\s*([\w\S]*)(?:\s*(.*))?$')
 	
 	# Nmap Grepable output 
-	p_grepable = re.compile('^Host\:\s+(?P<ip>%s)\s+\(.*\)\s+Ports\:\s+(?P<ports>.*)\t' % p_ip_elementary )
+	p_grepable = re.compile('^Host\:\s+(?P<ip>%s)\s+\(.*\)\s+Ports\:\s+(?P<ports>.*\/)\t.*$' % p_ip_elementary)
 	
 
 	IPs = {}
 	last_IP = ''
 	
 	lines = fd.readlines()
-	
 	for line in lines :
 		
 		# 1st case: Nmap normal output - 1st action:  grab the IP
 		IP = p_ip.match(line)
 		if IP :
-			# IP can match from version 5 OR 6
+			# IP can match from version 5 or 6
 			last_IP = IP.group('ip_nmap5') if (IP.group('ip_nmap5') != None) else IP.group('ip_nmap6')
+			
+			# Conversion from dotted-quad IP -> long integer for sorting purposes
+			last_IP = dottedQuadToNum(last_IP)
+			
 			IPs[last_IP] = []
 			
 			continue
@@ -109,10 +127,14 @@ def parse(fd) :
 			IPs[last_IP].append(port.groups())
 		
 		
-		# 2nd case: Nmap grepable output - only action : grab the IP and the port list
+		# 2nd case: Nmap grepable output - only 1 action : grab the IP and the port list
 		grepable = p_grepable.match(line)
 		if grepable :
 			last_IP = grepable.group('ip')
+			
+			# Conversion from dotted-quad IP -> long integer for sorting purposes
+			last_IP = dottedQuadToNum(last_IP)
+			
 			IPs[last_IP] = []
 			
 			port_list_splitted = split_grepable_ports(grepable.group('ports'))
@@ -132,17 +154,17 @@ def generate_csv(fd, results) :
 	if results != {} :
 		spamwriter = csv.writer(fd, delimiter=';')
 		
-		csv_header = ['IP', 'Protocol', 'Port', 'Service', 'Version']
+		csv_header = ['IP', 'Port', 'Protocol', 'Service', 'Version']
 		spamwriter.writerow(csv_header)
 		
-		for IP in results :
+		for IP in sorted(results.iterkeys()) :
 			port_list = results[IP]
 			
+			# Back Conversion from long integer -> dotted-quad IP
+			IP = numToDottedQuad(IP)
+			
 			for index, port_tuple in enumerate(port_list) :
-				port_number = port_tuple[0]
-				port_protocol = port_tuple[1]
-				port_service_name = port_tuple[2]
-				port_service_version = port_tuple[3]
+				port_number, port_protocol, port_service_name, port_service_version = port_tuple[0:4]
 				
 				# Write the IP once for all
 				if index > 0 :
