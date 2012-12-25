@@ -65,8 +65,6 @@ IP;Port;Protocol;Service;Version
 127.0.0.1;80;tcp;http?;
 ;5432;tcp;postgresql;PostgreSQL DB 8.4.1 - 8.4.11
 
-
-
 ```
 
 Dependencies
