@@ -35,7 +35,7 @@ Options:
 ```
 $ nmap -p- 10.0.0.0/24 | python nmaptocsv.py
 
-IPProtocol;Port;Service
+IP;Port;Protocol;Service;Version
 10.0.0.1;21;tcp;ftp
 ;53;tcp;domain
 ;80;tcp;http
@@ -52,16 +52,20 @@ IPProtocol;Port;Service
 ### Nmap Grepable format (-oG)
 ```
 $ cat scan.gnmap 
-# Nmap 5.00 scan initiated Sun Sep 23 12:27:11 2012 as: nmap -p- -oG scan.gnmap localhost 
-Host: 127.0.0.1 (localhost)	Ports: 25/open/tcp//smtp///, 111/open/tcp//rpcbind///, 48175/open/tcp/////	Ignored State: closed (65532)
-# Nmap done at Sun Sep 23 12:27:23 2012 -- 1 IP address (1 host up) scanned in 11.85 seconds
+# Nmap 6.25 scan initiated Tue Dec 25 15:23:48 2012 as: nmap --reason -A -sV -v -p- -sX -oG test_reason localhost
+# Ports scanned: TCP(65535;1-65535) UDP(0;) SCTP(0;) PROTOCOLS(0;)
+Host: 127.0.0.1 (localhost)	Status: Up
+Host: 127.0.0.1 (localhost)	Ports: 80/open/tcp//http?//, 5432/open/tcp//postgresql/PostgreSQL DB 8.4.1 - 8.4.11/	Ignored State: closed (65533)	OS: Linux 2.4.21
+# Nmap done at Tue Dec 25 15:24:15 2012 -- 1 IP address (1 host up) scanned in 28.76 seconds
+
 
 $ python nmaptocsv.py -i scan.gnmap
 
-IP;Protocol;Port;Service
-127.0.0.1;25;tcp;smtp
-;111;tcp;rpcbind
-;48175;tcp;
+IP;Port;Protocol;Service;Version
+127.0.0.1;80;tcp;http?;
+;5432;tcp;postgresql;PostgreSQL DB 8.4.1 - 8.4.11
+
+
 
 ```
 
