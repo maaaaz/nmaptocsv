@@ -31,13 +31,13 @@ option_1 = { 'name' : ('-o', '--output'), 'help' : 'csv output filename (stdout 
 
 options = [option_0, option_1]
 
-def dottedQuadToNum(ip):
+def dottedquad_to_num(ip):
     """
 		Convert decimal dotted quad string IP to long integer
 	"""
     return struct.unpack('!L',socket.inet_aton(ip))[0]
 
-def numToDottedQuad(n):
+def num_to_dottedquad(n):
     """
 		Convert long int IP to dotted quad string
 	"""
@@ -98,7 +98,7 @@ def parse(fd) :
 	p_port = re.compile('^([\d]+)\/(tcp|udp)\s*open\s*([\w\S]*)(?:\s*(.*))?$')
 	
 	# Nmap Grepable output 
-	p_grepable = re.compile('^Host\:\s+(?P<ip>%s)\s+\(.*\)\s+Ports\:\s+(?P<ports>.*\/)' % p_ip_elementary)
+	p_grepable = re.compile('^Host\:\s+(?P<ip>%s)\s+\((?P<rdns>|.*)\)\s+Ports\:\s+(?P<ports>.*\/)' % p_ip_elementary)
 	
 
 	IPs = {}
@@ -114,7 +114,7 @@ def parse(fd) :
 			last_IP = IP.group('ip_nmap5') if (IP.group('ip_nmap5') != None) else IP.group('ip_nmap6')
 			
 			# Conversion from dotted-quad IP -> long integer for sorting purposes
-			last_IP = dottedQuadToNum(last_IP)
+			last_IP = dottedquad_to_num(last_IP)
 			
 			IPs[last_IP] = []
 			
@@ -133,7 +133,7 @@ def parse(fd) :
 			last_IP = grepable.group('ip')
 			
 			# Conversion from dotted-quad IP -> long integer for sorting purposes
-			last_IP = dottedQuadToNum(last_IP)
+			last_IP = dottedquad_to_num(last_IP)
 			
 			IPs[last_IP] = []
 			
@@ -161,7 +161,7 @@ def generate_csv(fd, results) :
 			port_list = results[IP]
 			
 			# Back Conversion from long integer -> dotted-quad IP
-			IP = numToDottedQuad(IP)
+			IP = num_to_dottedquad(IP)
 			
 			for index, port_tuple in enumerate(port_list) :
 				port_number, port_protocol, port_service_name, port_service_version = port_tuple[0:4]
