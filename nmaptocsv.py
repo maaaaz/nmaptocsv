@@ -98,7 +98,7 @@ def parse(fd) :
 	p_port = re.compile('^([\d]+)\/(tcp|udp)\s*open\s*([\w\S]*)(?:\s*(.*))?$')
 	
 	# Nmap Grepable output 
-	p_grepable = re.compile('^Host\:\s+(?P<ip>%s)\s+\(.*\)\s+Ports\:\s+(?P<ports>.*\/)\t.*$' % p_ip_elementary)
+	p_grepable = re.compile('^Host\:\s+(?P<ip>%s)\s+\(.*\)\s+Ports\:\s+(?P<ports>.*\/)\t' % p_ip_elementary)
 	
 
 	IPs = {}
