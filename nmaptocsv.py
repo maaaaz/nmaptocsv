@@ -166,11 +166,7 @@ def generate_csv(fd, results) :
 			for index, port_tuple in enumerate(port_list) :
 				port_number, port_protocol, port_service_name, port_service_version = port_tuple[0:4]
 				
-				# Write the IP once for all
-				if index > 0 :
-					line = ['', port_number, port_protocol, port_service_name, port_service_version]
-				else :
-					line = [IP, port_number, port_protocol, port_service_name, port_service_version]
+				line = [IP, port_number, port_protocol, port_service_name, port_service_version]
 				
 				spamwriter.writerow(line)
 	return
