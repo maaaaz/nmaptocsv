@@ -37,15 +37,15 @@ $ nmap -p- 10.0.0.0/24 | python nmaptocsv.py
 
 IP;Port;Protocol;Service;Version
 10.0.0.1;21;tcp;ftp
-;53;tcp;domain
-;80;tcp;http
-;110;tcp;pop3
-;143;tcp;imap
-;443;tcp;ssl/http
+10.0.0.1;53;tcp;domain
+10.0.0.1;80;tcp;http
+10.0.0.1;110;tcp;pop3
+10.0.0.1;143;tcp;imap
+10.0.0.1;443;tcp;ssl/http
 10.0.0.3;25;tcp;smtp
-;111;tcp;rpcbind
-;48175;tcp;
-10.0.0.2;5432;tcp;postgresql
+10.0.0.3;111;tcp;rpcbind
+10.0.0.3;48175;tcp;
+10.0.0.4;5432;tcp;postgresql
 
 ```
 
@@ -63,7 +63,7 @@ $ python nmaptocsv.py -i scan.gnmap
 
 IP;Port;Protocol;Service;Version
 127.0.0.1;80;tcp;http?;
-;5432;tcp;postgresql;PostgreSQL DB 8.4.1 - 8.4.11
+127.0.0.1;5432;tcp;postgresql;PostgreSQL DB 8.4.1 - 8.4.11
 
 ```
 
