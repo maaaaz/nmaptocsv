@@ -37,7 +37,7 @@ Options:
   -s, --skip-header     do not print the csv header
 ```
 
-### Nmap Normal format (default ouput format -oN)
+### Nmap Normal format (default output format -oN)
 ```
 $ python nmaptocsv.py -i test.nmap -f ip-fqdn-port-protocol-service-version-os
 IP;FQDN;PORT;PROTOCOL;SERVICE;VERSION;OS
