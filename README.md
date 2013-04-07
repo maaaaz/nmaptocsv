@@ -9,7 +9,7 @@ Features
 --------
 * Support of Nmap version 5 & 6 normal format output (default format)
 * Support of Nmap any version Grepable format output (-oG)
-* Parsing the main items : IP, FQDN, MAC address and vendor, open ports, tcp/udp protocols, listening services and versions, OS, Number of hops to the target
+* Parsing main information : IP, FQDN, MAC address and vendor, open ports, tcp/udp protocols, listening services and versions, OS, Number of hops to the target
 * Custom output format following the main items
 
 Usage
