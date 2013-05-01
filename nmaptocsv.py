@@ -265,14 +265,11 @@ def split_grepable_match(raw_string) :
 	open_ports_list = filter(lambda p: '/open/' in p, all_ports)
 	
 	for open_port in open_ports_list :
-		splitted_fields = open_port.split('/')
+		splitted_fields = open_port.split('/',6)
 		
 		# Extract each field from the format [port number / state / protocol / owner / service / rpc info / version info]
 		#-- Thanks to http://www.unspecific.com/nmap-oG-output/
-		number, state, protocol, owner, service, rpc_info, version_info = splitted_fields[0:7]
-		
-		# Gather the 2 last field as 'version' field
-		version = ' '.join(filter(None,[rpc_info, version_info]))
+		number, state, protocol, owner, service, version = splitted_fields[0:6]
 		
 		new_port = Port(number, protocol, service, version)
 		
