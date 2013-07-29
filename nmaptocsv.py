@@ -397,7 +397,7 @@ def formatted_item(host, format_item):
 					'hop_number': 			[host.get_network_distance()],
 					'ip' : 					[host.get_ip_dotted_format()],
 					'mac_address':			[host.get_mac_address()],
-					'mac_address_vendor': 	[host.get_mac_address_vendor()],
+					'mac_vendor': 	[host.get_mac_address_vendor()],
 					'os' : 					[host.get_os()],
 					'port':					host.get_port_number_list(),
 					'protocol':				host.get_port_protocol_list(),
