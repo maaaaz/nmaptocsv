@@ -266,16 +266,22 @@ def split_grepable_match(raw_string) :
 	
 	for open_port in open_ports_list :
 		splitted_fields = open_port.split('/',6)
-		
-		# Extract each field from the format [port number / state / protocol / owner / service / rpc info / version info]
+
+		# Extract each field from the format:
+		# [ port number / state / protocol / owner / service / rpc info / version info / ]
 		#-- Thanks to http://www.unspecific.com/nmap-oG-output/
-		number, state, protocol, owner, service, version = splitted_fields[0:6]
-		
+		number = splitted_fields[0]
+		protocol = splitted_fields[2]
+		service = splitted_fields[4]
+
+		# the last field (version) has a trailing slash that we don't want
+		version_with_trailing_slash = splitted_fields[6]
+		version = version_with_trailing_slash[:-1]
+
 		new_port = Port(number, protocol, service, version)
-		
+
 		current_host.add_port(new_port)
-		
-	
+
 	return current_host
 
 def parse(fd) :
