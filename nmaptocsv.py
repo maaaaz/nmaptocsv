@@ -33,7 +33,7 @@ from optparse import OptionParser
 # Options definition
 OPTION_0 = {'name': ('-i', '--input'), 'help': 'Nmap scan output file (stdin if not specified)', 'nargs': 1}
 OPTION_1 = {'name': ('-o', '--output'), 'help': 'csv output filename (stdout if not specified)', 'nargs': 1}
-OPTION_2 = {'name': ('-f', '--format'), 'help': 'csv column format { fqdn, hop_number, ip, mac_address, mac_vendor, port, protocol, os, service, version } (default : ip-fqdn-port-protocol-service-version)', 'nargs': 1}
+OPTION_2 = {'name': ('-f', '--format'), 'help': 'csv column format { fqdn, hop_number, ip, mac_address, mac_vendor, port, protocol, os, service, version, script } (default : ip-fqdn-port-protocol-service-version)', 'nargs': 1}
 OPTION_3 = {'name': ('-n', '--newline'), 'help': 'insert a newline between each host for better readability', 'action': 'count'}
 OPTION_4 = {'name': ('-s', '--skip-header'), 'help': 'do not print the csv header', 'action': 'count'}
 
@@ -42,7 +42,7 @@ ALL_OPTIONS = [OPTION_0, OPTION_1, OPTION_2, OPTION_3, OPTION_4]
 # Format option
 DEFAULT_FORMAT = 'ip-fqdn-port-protocol-service-version'
 SUPPORTED_FORMAT_OBJECTS = ['fqdn', 'hop_number', 'ip', 'mac_address', 'mac_vendor', 'port', 'protocol', 'os',
-                            'service', 'version']
+                            'service', 'version', 'script']
 INVALID_FORMAT = 10
 VALID_FORMAT = 11
 
@@ -83,6 +83,9 @@ P_NETWORK_DIST = re.compile('Network Distance:\s(?P<hop_number>\d+)\shops?')
 # Nmap Grepable output
 # -- Target, Ports
 P_GREPABLE = re.compile('(?P<whole_line>^Host:\s.*)')
+
+# Nmap Script Output
+P_SCRIPT = re.compile('^(?P<identifier>\|_?)(?P<whole_line>.*)')
 
 
 # Handful functions
@@ -199,6 +202,11 @@ class Host:
                 result.append(port.get_version())
         return result
 
+    def get_port_script_list(self):
+        if not self.get_port_list():
+            return ['']
+        return [p.get_script() for p in self.get_port_list()]
+
     def get_os(self):
         return str(self.os)
 
@@ -232,7 +240,9 @@ class Port:
         self.protocol = protocol
         self.service = service
         self.version = version
+        self.script = []
 
+    # Getters
     def get_number(self):
         return self.number
 
@@ -244,6 +254,13 @@ class Port:
 
     def get_version(self):
         return self.version
+
+    def get_script(self):
+        return '\n'.join(self.script)
+
+    # Setters
+    def append_script(self, new_line):
+        self.script.append(new_line)
 
 
 def split_grepable_match(raw_string):
@@ -300,6 +317,7 @@ def parse(fd):
     """
     ip_addresses = {}
     last_host = None
+    last_port = None
 
     lines = [l.rstrip() for l in fd.readlines()]
     for line in lines:
@@ -321,6 +339,7 @@ def parse(fd):
             ip_addresses[new_host.get_ip_num_format()] = new_host
 
             last_host = new_host
+            last_port = None
 
         # 1st case: 	Nmap Normal Output
         # -- 2nd action: Grab the port
@@ -334,6 +353,7 @@ def parse(fd):
             new_port = Port(number, protocol, service, version)
 
             last_host.add_port(new_port)
+            last_port = new_port
 
         # 1st case: 	Nmap Normal Output
         # -- 3rd action:	Grab the MAC address
@@ -352,6 +372,15 @@ def parse(fd):
         network_distance = P_NETWORK_DIST.search(line)
         if network_distance:
             last_host.set_network_distance(str(network_distance.group('hop_number')))
+
+        # 1st case:     Nmap Normal Output
+        # -- 6th action:    Grab the Nmap Script Output
+        script = P_SCRIPT.search(line)
+        if script:
+            value = str(script.group('whole_line'))
+            if len(script.group('identifier')) > 1:
+                value = ' ' + value
+            last_port.append_script(value)
 
         # 2nd case: 		Nmap Grepable Output
         # -- 1 sole action:	Grab the whole line for further splitting
@@ -409,7 +438,8 @@ def formatted_item(host, format_item):
             'port': host.get_port_number_list(),
             'protocol': host.get_port_protocol_list(),
             'service': host.get_port_service_list(),
-            'version': host.get_port_version_list()
+            'version': host.get_port_version_list(),
+            'script': host.get_port_script_list(),
         }
 
         if format_item in option_map.keys():
@@ -519,7 +549,7 @@ def process_args():
 
     if opts.format and check_supplied_format(opts.format) != VALID_FORMAT:
         parser.error("Please specify a valid output format.\n\
-        Supported objects are { fqdn, ip, mac_address, mac_vendor, port, protocol, os, service, version }.")
+        Supported objects are { fqdn, ip, mac_address, mac_vendor, port, protocol, os, service, version, script }.")
 
     return opts, arguments
 

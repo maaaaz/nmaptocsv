@@ -7,9 +7,9 @@ A simple python script to convert Nmap output to CSV
 
 Features
 --------
-* Support of Nmap version 5 & 6 normal format output (default format)
+* Support of Nmap version 5, 6, and 7 normal format output (default format)
 * Support of Nmap any version Grepable format output (-oG)
-* Parsing main information : IP, FQDN, MAC address and vendor, open ports, tcp/udp protocols, listening services and versions, OS, Number of hops to the target
+* Parsing main information : IP, FQDN, MAC address and vendor, open ports, tcp/udp protocols, listening services and versions, OS, Number of hops to the target, Nmap script output (only works with normal format output, Grepable format output doesn't contain it)
 * Custom output format following the main items
 
 Usage
@@ -30,7 +30,7 @@ Options:
                         csv output filename (stdout if not specified)
   -f FORMAT, --format=FORMAT
                         csv column format { fqdn, hop_number, ip, mac_address,
-                        mac_vendor, port, protocol, os, service, version }
+                        mac_vendor, port, protocol, os, service, version, script }
                         (default : ip-fqdn-port-protocol-service-version)
   -n, --newline         insert a newline between each host for better
                         readability
