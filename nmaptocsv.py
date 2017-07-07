@@ -20,22 +20,24 @@
 # along with nmaptocsv.  If not, see <http://www.gnu.org/licenses/>.
 
 # Global imports
-import sys, re, csv, struct, socket, itertools
+import sys
+import re
+import csv
+import struct
+import socket
+import itertools
 
 # OptionParser imports
 from optparse import OptionParser
 
 # Options definition
-option_0 = {'name': ('-i', '--input'), 'help': 'Nmap scan output file (stdin if not specified)', 'nargs': 1}
-option_1 = {'name': ('-o', '--output'), 'help': 'csv output filename (stdout if not specified)', 'nargs': 1}
-option_2 = {'name': ('-f', '--format'),
-            'help': 'csv column format { fqdn, hop_number, ip, mac_address, mac_vendor, port, protocol, os, service, version } (default : ip-fqdn-port-protocol-service-version)',
-            'nargs': 1}
-option_3 = {'name': ('-n', '--newline'), 'help': 'insert a newline between each host for better readability',
-            'action': 'count'}
-option_4 = {'name': ('-s', '--skip-header'), 'help': 'do not print the csv header', 'action': 'count'}
+OPTION_0 = {'name': ('-i', '--input'), 'help': 'Nmap scan output file (stdin if not specified)', 'nargs': 1}
+OPTION_1 = {'name': ('-o', '--output'), 'help': 'csv output filename (stdout if not specified)', 'nargs': 1}
+OPTION_2 = {'name': ('-f', '--format'), 'help': 'csv column format { fqdn, hop_number, ip, mac_address, mac_vendor, port, protocol, os, service, version } (default : ip-fqdn-port-protocol-service-version)', 'nargs': 1}
+OPTION_3 = {'name': ('-n', '--newline'), 'help': 'insert a newline between each host for better readability', 'action': 'count'}
+OPTION_4 = {'name': ('-s', '--skip-header'), 'help': 'do not print the csv header', 'action': 'count'}
 
-options = [option_0, option_1, option_2, option_3, option_4]
+ALL_OPTIONS = [OPTION_0, OPTION_1, OPTION_2, OPTION_3, OPTION_4]
 
 # Format option
 DEFAULT_FORMAT = 'ip-fqdn-port-protocol-service-version'
@@ -54,33 +56,33 @@ YES_HEADER = 23
 
 # Handful patterns
 # -- IP regex
-p_ip_elementary = '(?:[\d]{1,3})\.(?:[\d]{1,3})\.(?:[\d]{1,3})\.(?:[\d]{1,3})'
-p_mac_elementary = '[0-9a-fA-F][0-9a-fA-F]:){5}([0-9a-fA-F][0-9a-fA-F]'
+P_IP_ELEMENTARY = '(?:[\d]{1,3})\.(?:[\d]{1,3})\.(?:[\d]{1,3})\.(?:[\d]{1,3})'
+P_MAC_ELEMENTARY = '[0-9a-fA-F][0-9a-fA-F]:){5}([0-9a-fA-F][0-9a-fA-F]'
 
 # Nmap Normal Output patterns
 # -- Target
-p_ip_nmap5 = 'Interesting.*on\s(?:(?P<fqdn_nmap5>.*) (?=\((?P<ip_nmap5>%s)\)))|Interesting.*on\s(?P<ip_only_nmap5>.*)\:' % p_ip_elementary
-p_ip_nmap6 = 'Nmap.*for\s(?:(?P<fqdn_nmap6>.*) (?=\((?P<ip_nmap6>%s)\)))|Nmap.*for\s(?P<ip_only_nmap6>%s)$' % (
-p_ip_elementary, p_ip_elementary)
+P_IP_NMAP5 = 'Interesting.*on\s(?:(?P<fqdn_nmap5>.*) (?=\((?P<ip_nmap5>%s)\)))|Interesting.*on\s(?P<ip_only_nmap5>.*)\:' % P_IP_ELEMENTARY
+P_IP_NMAP6 = 'Nmap.*for\s(?:(?P<fqdn_nmap6>.*) (?=\((?P<ip_nmap6>%s)\)))|Nmap.*for\s(?P<ip_only_nmap6>%s)$' % (
+    P_IP_ELEMENTARY, P_IP_ELEMENTARY)
 
-p_ip = re.compile('%s|%s' % (p_ip_nmap5, p_ip_nmap6))
+P_IP = re.compile('%s|%s' % (P_IP_NMAP5, P_IP_NMAP6))
 
 # -- Port finding
-p_port = re.compile(
-    '^(?P<number>[\d]+)\/(?P<protocol>tcp|udp)\s+(?:open|open\|filtered)\s+(?P<service>[\w\S]*)(?:\s*(?P<version>.*))?$')
+P_PORT = re.compile(
+    '^(?P<number>[\d]+)/(?P<protocol>tcp|udp)\s+(?:open|open\|filtered)\s+(?P<service>[\w\S]*)(?:\s*(?P<version>.*))?$')
 
 # -- MAC address
-p_mac = re.compile('MAC Address:\s(?P<mac_addr>(%s))\s\((?P<mac_vendor>.*)\)' % p_mac_elementary)
+P_MAC = re.compile('MAC Address:\s(?P<mac_addr>(%s))\s\((?P<mac_vendor>.*)\)' % P_MAC_ELEMENTARY)
 
 # -- OS detection (pattern order is important, the latter position the more precise and reliable the information is)
-p_os = re.compile('(?:^Service Info: OS|^OS|^OS details|smb-os-discovery|\|\s+OS):\s(?P<os>[^;]+)')
+P_OS = re.compile('(?:^Service Info: OS|^OS|^OS details|smb-os-discovery|\|\s+OS):\s(?P<os>[^;]+)')
 
 # -- Network distance
-p_network_dist = re.compile('Network Distance:\s(?P<hop_number>\d+)\shops?')
+P_NETWORK_DIST = re.compile('Network Distance:\s(?P<hop_number>\d+)\shops?')
 
-# Nmap Grepable output 
+# Nmap Grepable output
 # -- Target, Ports
-p_grepable = re.compile('(?P<whole_line>^Host:\s.*)')
+P_GREPABLE = re.compile('(?P<whole_line>^Host:\s.*)')
 
 
 # Handful functions
@@ -98,17 +100,17 @@ def num_to_dottedquad(n):
     return socket.inet_ntoa(struct.pack('!L', n))
 
 
-def unique_match_from_list(list):
+def unique_match_from_list(items):
     """
         Check the list for a potential pattern match
 
-        @param list : a list of potential matching groups
+        @param items : a list of potential matching groups
 
         @rtype : return the unique value that matched, or nothing if nothing matched
     """
     result = ''
-    for item in list:
-        if item != None:
+    for item in items:
+        if item is not None:
             result = str(item)
 
     return result
@@ -252,23 +254,21 @@ def split_grepable_match(raw_string):
 
         @rtype : return an Host object
     """
-    global p_ip_elementary
-
     splitted_fields = raw_string.split("\t")
 
     # Patterns
-    p_host = re.compile('Host:\s(?P<ip>%s)\s+\((?P<fqdn>|.*)\)' % p_ip_elementary)
+    p_host = re.compile('Host:\s(?P<ip>%s)\s+\((?P<fqdn>|.*)\)' % P_IP_ELEMENTARY)
     p_ports = re.compile('Ports:\s+(?P<ports>.*)')
     p_os = re.compile('OS:\s(?P<os>.*)')
 
     # Extracted named-group matches
-    IP_str = extract_matching_pattern(p_host, 'ip', splitted_fields)
-    FQDN_str = extract_matching_pattern(p_host, 'fqdn', splitted_fields)
+    ip_str = extract_matching_pattern(p_host, 'ip', splitted_fields)
+    fqdn_str = extract_matching_pattern(p_host, 'fqdn', splitted_fields)
     ports_str = extract_matching_pattern(p_ports, 'ports', splitted_fields)
-    OS_str = extract_matching_pattern(p_os, 'os', splitted_fields)
+    os_str = extract_matching_pattern(p_os, 'os', splitted_fields)
 
-    current_host = Host(IP_str, FQDN_str)
-    current_host.set_os(OS_str)
+    current_host = Host(ip_str, fqdn_str)
+    current_host.set_os(os_str)
 
     # Let's split the raw port list
     all_ports = ports_str.split(', ')
@@ -298,9 +298,7 @@ def parse(fd):
 
         @rtype : return a list of <Host> objects indexed from their numerical IP representation
     """
-    global p_ip_elementary, p_ip, p_port, p_grepable
-
-    IPs = {}
+    ip_addresses = {}
     last_host = None
 
     lines = [l.rstrip() for l in fd.readlines()]
@@ -308,26 +306,26 @@ def parse(fd):
 
         # 1st case: 	Nmap Normal Output
         # -- 1st action: Grab the IP
-        IP = p_ip.search(line)
-        if IP:
+        ip = P_IP.search(line)
+        if ip:
             # Check out what patterns matched
-            IP_potential_match = [IP.group('ip_nmap5'), IP.group('ip_only_nmap5'), IP.group('ip_nmap6'),
-                                  IP.group('ip_only_nmap6')]
-            IP_str = unique_match_from_list(IP_potential_match)
+            ip_potential_match = [ip.group('ip_nmap5'), ip.group('ip_only_nmap5'), ip.group('ip_nmap6'),
+                                  ip.group('ip_only_nmap6')]
+            ip_str = unique_match_from_list(ip_potential_match)
 
-            FQDN_potential_match = [IP.group('fqdn_nmap5'), IP.group('fqdn_nmap6')]
-            FQDN_str = unique_match_from_list(FQDN_potential_match)
+            fqdn_potential_match = [ip.group('fqdn_nmap5'), ip.group('fqdn_nmap6')]
+            fqdn_str = unique_match_from_list(fqdn_potential_match)
 
-            new_host = Host(IP_str, FQDN_str)
+            new_host = Host(ip_str, fqdn_str)
 
-            IPs[new_host.get_ip_num_format()] = new_host
+            ip_addresses[new_host.get_ip_num_format()] = new_host
 
             last_host = new_host
 
         # 1st case: 	Nmap Normal Output
         # -- 2nd action: Grab the port
-        port = p_port.search(line)
-        if port and last_host != None:
+        port = P_PORT.search(line)
+        if port and last_host:
             number = str(port.group('number'))
             protocol = str(port.group('protocol'))
             service = str(port.group('service'))
@@ -339,35 +337,35 @@ def parse(fd):
 
         # 1st case: 	Nmap Normal Output
         # -- 3rd action:	Grab the MAC address
-        mac = p_mac.search(line)
+        mac = P_MAC.search(line)
         if mac:
             last_host.set_mac(str(mac.group('mac_addr')), str(mac.group('mac_vendor')))
 
         # 1st case:		Nmap Normal Output
         # -- 4th action:	Grab the OS detection
-        os = p_os.search(line)
+        os = P_OS.search(line)
         if os:
             last_host.set_os(str(os.group('os')))
 
         # 1st case:		Nmap Normal Output
         # -- 5th action:	Grab the network distance
-        network_distance = p_network_dist.search(line)
+        network_distance = P_NETWORK_DIST.search(line)
         if network_distance:
             last_host.set_network_distance(str(network_distance.group('hop_number')))
 
         # 2nd case: 		Nmap Grepable Output
         # -- 1 sole action:	Grab the whole line for further splitting
-        grepable = p_grepable.search(line)
+        grepable = P_GREPABLE.search(line)
         if grepable:
             if grepable.group('whole_line'):
                 new_host = split_grepable_match(grepable.group('whole_line'))
 
                 # Update the occurence found with 'Status: Up'
-                IPs[new_host.get_ip_num_format()] = new_host
+                ip_addresses[new_host.get_ip_num_format()] = new_host
 
                 last_host = new_host
 
-    return IPs
+    return ip_addresses
 
 
 def check_supplied_format(fmt):
@@ -378,7 +376,6 @@ def check_supplied_format(fmt):
 
         @rtype : VALID_FORMAT or INVALID_FORMAT
     """
-    global SUPPORTED_FORMAT_OBJECTS, INVALID_FORMAT, VALID_FORMAT
     result = INVALID_FORMAT
 
     splitted_fmt = fmt.split('-')
@@ -442,6 +439,10 @@ def generate_csv(fd, results, output_format, header, newline):
         Generate a plain ';' separated csv file with the desired or default attribute format
 
         @param fd : output file descriptor, could be a true file or stdout
+        @param results: dictionary of the collected information
+        @param output_format: string of fields to output and in what order
+        @param header: should CSV have header line
+        @param newline: should CSV be double-spaced for readability
     """
     if results != {}:
         spamwriter = csv.writer(fd, delimiter=';')
@@ -450,11 +451,11 @@ def generate_csv(fd, results, output_format, header, newline):
             csv_header = [format_item.upper() for format_item in output_format.split('-')]
             spamwriter.writerow(csv_header)
 
-        for IP in sorted(results.iterkeys()):
+        for ip in sorted(results.iterkeys()):
             formatted_attribute_list = []
 
             for index, format_item in enumerate(output_format.split('-')):
-                item = formatted_item(results[IP], format_item)
+                item = formatted_item(results[ip], format_item)
                 formatted_attribute_list.insert(index, item)
 
             formatted_attribute_list = repeat_attributes(formatted_attribute_list)
@@ -469,18 +470,15 @@ def generate_csv(fd, results, output_format, header, newline):
     return
 
 
-def main(options, arguments):
+def main():
+    # arguments
+    options, arguments = process_args()
+
     # Supplied format
-    output_format = DEFAULT_FORMAT
-    if options.format != None:
-        if check_supplied_format(options.format) == VALID_FORMAT:
-            output_format = options.format
-        else:
-            parser.error("Please specify a valid output format.\n\
-			 Supported objects are { fqdn, ip, mac_address, mac_vendor, port, protocol, os, service, version }.")
+    output_format = DEFAULT_FORMAT if not options.format else options.format
 
     # Input descriptor
-    if (options.input != None):
+    if options.input:
         fd_input = open(options.input, 'rb')
     else:
         # No input file specified, reading from stdin
@@ -491,17 +489,17 @@ def main(options, arguments):
     fd_input.close()
 
     # Output descriptor
-    if (options.output != None):
+    if options.output:
         fd_output = open(options.output, 'wb')
     else:
         # No output file specified, writing to stdout
         fd_output = sys.stdout
 
     # Newline
-    newline = {True: YES_NEWLINE, False: NO_NEWLINE}[options.newline != None]
+    newline = {True: YES_NEWLINE, False: NO_NEWLINE}[options.newline is not None]
 
     # Header
-    header = {True: NO_HEADER, False: YES_HEADER}[options.skip_header != None]
+    header = {True: NO_HEADER, False: YES_HEADER}[options.skip_header is not None]
 
     # CSV output
     generate_csv(fd_output, results, output_format, header, newline)
@@ -510,12 +508,21 @@ def main(options, arguments):
     return
 
 
-if __name__ == "__main__":
+def process_args():
     parser = OptionParser()
-    for option in options:
+    for option in ALL_OPTIONS:
         param = option['name']
         del option['name']
         parser.add_option(*param, **option)
 
-    options, arguments = parser.parse_args()
-    main(options, arguments)
+    opts, arguments = parser.parse_args()
+
+    if opts.format and check_supplied_format(opts.format) != VALID_FORMAT:
+        parser.error("Please specify a valid output format.\n\
+        Supported objects are { fqdn, ip, mac_address, mac_vendor, port, protocol, os, service, version }.")
+
+    return opts, arguments
+
+
+if __name__ == "__main__":
+    sys.exit(main())
