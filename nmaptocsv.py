@@ -111,12 +111,10 @@ def unique_match_from_list(items):
 
         @rtype : return the unique value that matched, or nothing if nothing matched
     """
-    result = ''
     for item in items:
-        if item is not None:
-            result = str(item)
-
-    return result
+        if item:
+            return item
+    return ''
 
 
 def extract_matching_pattern(regex, group_name, unfiltered_list):
@@ -139,7 +137,7 @@ def extract_matching_pattern(regex, group_name, unfiltered_list):
     return result
 
 
-class Host:
+class Host(object):
     def __init__(self, ip, fqdn=''):
         self.ip_dottedquad = ip
         self.ip_num = dottedquad_to_num(ip)
@@ -153,114 +151,47 @@ class Host:
     def add_port(self, port):
         self.ports.append(port)
 
-    # Getters
-    def get_ip_num_format(self):
-        return str(self.ip_num)
-
-    def get_ip_dotted_format(self):
-        return str(self.ip_dottedquad)
-
-    def get_fqdn(self):
-        return str(self.fqdn)
-
-    def get_port_list(self):
-        return self.ports
-
-    def get_port_number_list(self):
-        if not (self.get_port_list()):
+    def _get_port_info(self, func_name):
+        if not self.ports:
             return ['']
-        else:
-            result = []
-            for port in self.get_port_list():
-                result.append(port.get_number())
-        return result
+        return [getattr(p, func_name) for p in self.ports]
 
-    def get_port_protocol_list(self):
-        if not (self.get_port_list()):
-            return ['']
-        else:
-            result = []
-            for port in self.get_port_list():
-                result.append(port.get_protocol())
-        return result
+    @property
+    def port_numbers(self):
+        return self._get_port_info('number')
 
-    def get_port_service_list(self):
-        if not (self.get_port_list()):
-            return ['']
-        else:
-            result = []
-            for port in self.get_port_list():
-                result.append(port.get_service())
-        return result
+    @property
+    def port_protocols(self):
+        return self._get_port_info('protocol')
 
-    def get_port_version_list(self):
-        if not (self.get_port_list()):
-            return ['']
-        else:
-            result = []
-            for port in self.get_port_list():
-                result.append(port.get_version())
-        return result
+    @property
+    def port_services(self):
+        return self._get_port_info('service')
 
-    def get_port_script_list(self):
-        if not self.get_port_list():
-            return ['']
-        return [p.get_script() for p in self.get_port_list()]
+    @property
+    def port_versions(self):
+        return self._get_port_info('version')
 
-    def get_os(self):
-        return str(self.os)
-
-    def get_mac_address(self):
-        return str(self.mac_address)
-
-    def get_mac_address_vendor(self):
-        return str(self.mac_address_vendor)
-
-    def get_network_distance(self):
-        return str(self.network_distance)
-
-    # Setters
-    def set_fqdn(self, fqdn):
-        self.fqdn = fqdn
-
-    def set_os(self, os):
-        self.os = os
-
-    def set_mac(self, mac_address, mac_address_vendor=''):
-        self.mac_address = mac_address
-        self.mac_address_vendor = mac_address_vendor
-
-    def set_network_distance(self, network_distance):
-        self.network_distance = network_distance
+    @property
+    def port_scripts(self):
+        return self._get_port_info('script')
 
 
-class Port:
+class Port(object):
     def __init__(self, number, protocol, service, version):
         self.number = number
         self.protocol = protocol
         self.service = service
         self.version = version
-        self.script = []
+        self._script = []
 
-    # Getters
-    def get_number(self):
-        return self.number
+    @property
+    def script(self):
+        return '\n'.join(self._script)
 
-    def get_protocol(self):
-        return self.protocol
-
-    def get_service(self):
-        return self.service
-
-    def get_version(self):
-        return self.version
-
-    def get_script(self):
-        return '\n'.join(self.script)
-
-    # Setters
-    def append_script(self, new_line):
-        self.script.append(new_line)
+    @script.setter
+    def script(self, value):
+        self._script.append(value)
 
 
 def split_grepable_match(raw_string):
@@ -285,7 +216,7 @@ def split_grepable_match(raw_string):
     os_str = extract_matching_pattern(p_os, 'os', splitted_fields)
 
     current_host = Host(ip_str, fqdn_str)
-    current_host.set_os(os_str)
+    current_host.os = os_str
 
     # Let's split the raw port list
     all_ports = ports_str.split(', ')
@@ -336,7 +267,7 @@ def parse(fd):
 
             new_host = Host(ip_str, fqdn_str)
 
-            ip_addresses[new_host.get_ip_num_format()] = new_host
+            ip_addresses[new_host.ip_num] = new_host
 
             last_host = new_host
             last_port = None
@@ -345,10 +276,10 @@ def parse(fd):
         # -- 2nd action: Grab the port
         port = P_PORT.search(line)
         if port and last_host:
-            number = str(port.group('number'))
-            protocol = str(port.group('protocol'))
-            service = str(port.group('service'))
-            version = str(port.group('version'))
+            number = port.group('number')
+            protocol = port.group('protocol')
+            service = port.group('service')
+            version = port.group('version')
 
             new_port = Port(number, protocol, service, version)
 
@@ -359,28 +290,29 @@ def parse(fd):
         # -- 3rd action:	Grab the MAC address
         mac = P_MAC.search(line)
         if mac:
-            last_host.set_mac(str(mac.group('mac_addr')), str(mac.group('mac_vendor')))
+            last_host.mac_address = mac.group('mac_addr')
+            last_host.mac_address_vendor = mac.group('mac_vendoer')
 
         # 1st case:		Nmap Normal Output
         # -- 4th action:	Grab the OS detection
         os = P_OS.search(line)
         if os:
-            last_host.set_os(str(os.group('os')))
+            last_host.os = os.group('os')
 
         # 1st case:		Nmap Normal Output
         # -- 5th action:	Grab the network distance
         network_distance = P_NETWORK_DIST.search(line)
         if network_distance:
-            last_host.set_network_distance(str(network_distance.group('hop_number')))
+            last_host.network_distance = network_distance.group('hop_number')
 
         # 1st case:     Nmap Normal Output
         # -- 6th action:    Grab the Nmap Script Output
         script = P_SCRIPT.search(line)
         if script:
-            value = str(script.group('whole_line'))
+            value = script.group('whole_line')
             if len(script.group('identifier')) > 1:
                 value = ' ' + value
-            last_port.append_script(value)
+            last_port.script = value
 
         # 2nd case: 		Nmap Grepable Output
         # -- 1 sole action:	Grab the whole line for further splitting
@@ -390,7 +322,7 @@ def parse(fd):
                 new_host = split_grepable_match(grepable.group('whole_line'))
 
                 # Update the occurence found with 'Status: Up'
-                ip_addresses[new_host.get_ip_num_format()] = new_host
+                ip_addresses[new_host.ip_num] = new_host
 
                 last_host = new_host
 
@@ -405,17 +337,13 @@ def check_supplied_format(fmt):
 
         @rtype : VALID_FORMAT or INVALID_FORMAT
     """
-    result = INVALID_FORMAT
-
     splitted_fmt = fmt.split('-')
 
     for fmt_object in splitted_fmt:
-        if not (fmt_object in SUPPORTED_FORMAT_OBJECTS):
-            break
-    else:
-        result = VALID_FORMAT
+        if fmt_object not in SUPPORTED_FORMAT_OBJECTS:
+            return INVALID_FORMAT
 
-    return result
+    return VALID_FORMAT
 
 
 def formatted_item(host, format_item):
@@ -427,27 +355,27 @@ def formatted_item(host, format_item):
 
         @rtype : the <list> attribute value
     """
-    if isinstance(host, Host):
-        option_map = {
-            'fqdn': [host.get_fqdn()],
-            'hop_number': [host.get_network_distance()],
-            'ip': [host.get_ip_dotted_format()],
-            'mac_address': [host.get_mac_address()],
-            'mac_vendor': [host.get_mac_address_vendor()],
-            'os': [host.get_os()],
-            'port': host.get_port_number_list(),
-            'protocol': host.get_port_protocol_list(),
-            'service': host.get_port_service_list(),
-            'version': host.get_port_version_list(),
-            'script': host.get_port_script_list(),
-        }
-
-        if format_item in option_map.keys():
-            return option_map[format_item]
-        else:
-            return ''
-    else:
+    if not isinstance(host, Host):
         return []
+
+    option_map = {
+        'fqdn': [host.fqdn],
+        'hop_number': [host.network_distance],
+        'ip': [host.ip_dottedquad],
+        'mac_address': [host.mac_address],
+        'mac_vendor': [host.mac_address_vendor],
+        'os': [host.os],
+        'port': host.port_numbers,
+        'protocol': host.port_protocols,
+        'service': host.port_services,
+        'version': host.port_versions,
+        'script': host.port_scripts,
+    }
+
+    if format_item in option_map.keys():
+        return option_map[format_item]
+    else:
+        return ''
 
 
 def repeat_attributes(attribute_list):
@@ -472,70 +400,32 @@ def generate_csv(fd, results, output_format, header, newline):
         @param results: dictionary of the collected information
         @param output_format: string of fields to output and in what order
         @param header: should CSV have header line
-        @param newline: should CSV be double-spaced for readability
+        @param newline: should CSV have blank line between hosts for better readability
     """
-    if results != {}:
-        spamwriter = csv.writer(fd, delimiter=';')
+    if not results:
+        return
 
-        if header == YES_HEADER:
-            csv_header = [format_item.upper() for format_item in output_format.split('-')]
-            spamwriter.writerow(csv_header)
+    csv_file = csv.writer(fd, delimiter=';')
 
-        for ip in sorted(results.iterkeys()):
-            formatted_attribute_list = []
+    if header == YES_HEADER:
+        csv_header = [format_item.upper() for format_item in output_format.split('-')]
+        csv_file.writerow(csv_header)
 
-            for index, format_item in enumerate(output_format.split('-')):
-                item = formatted_item(results[ip], format_item)
-                formatted_attribute_list.insert(index, item)
+    for ip in sorted(results.iterkeys()):
+        formatted_attribute_list = []
 
-            formatted_attribute_list = repeat_attributes(formatted_attribute_list)
+        for index, format_item in enumerate(output_format.split('-')):
+            item = formatted_item(results[ip], format_item)
+            formatted_attribute_list.insert(index, item)
 
-            for line_to_write in itertools.izip(*formatted_attribute_list):
-                spamwriter.writerow(list(line_to_write))
+        formatted_attribute_list = repeat_attributes(formatted_attribute_list)
 
-            # Print a newline if asked
-            if newline == YES_NEWLINE:
-                spamwriter.writerow('')
+        for line_to_write in itertools.izip(*formatted_attribute_list):
+            csv_file.writerow(list(line_to_write))
 
-    return
-
-
-def main():
-    # arguments
-    options, arguments = process_args()
-
-    # Supplied format
-    output_format = DEFAULT_FORMAT if not options.format else options.format
-
-    # Input descriptor
-    if options.input:
-        fd_input = open(options.input, 'rb')
-    else:
-        # No input file specified, reading from stdin
-        fd_input = sys.stdin
-
-    # Analysis
-    results = parse(fd_input)
-    fd_input.close()
-
-    # Output descriptor
-    if options.output:
-        fd_output = open(options.output, 'wb')
-    else:
-        # No output file specified, writing to stdout
-        fd_output = sys.stdout
-
-    # Newline
-    newline = {True: YES_NEWLINE, False: NO_NEWLINE}[options.newline is not None]
-
-    # Header
-    header = {True: NO_HEADER, False: YES_HEADER}[options.skip_header is not None]
-
-    # CSV output
-    generate_csv(fd_output, results, output_format, header, newline)
-    fd_output.close()
-
-    return
+        # Print a newline on host change, if asked
+        if newline == YES_NEWLINE:
+            csv_file.writerow('')
 
 
 def process_args():
@@ -553,6 +443,24 @@ def process_args():
 
     return opts, arguments
 
+
+def main():
+    # arguments
+    options, arguments = process_args()
+
+    output_format = DEFAULT_FORMAT if not options.format else options.format
+    fd_input = sys.stdin if not options.input else open(options.input, 'rb')
+
+    results = parse(fd_input)
+    fd_input.close()
+
+    newline = YES_NEWLINE if options.newline else NO_NEWLINE
+    header = NO_HEADER if options.skip_header else YES_HEADER
+    fd_output = sys.stdout if not options.output else open(options.output, 'wb')
+
+    generate_csv(fd_output, results, output_format, header, newline)
+    fd_output.close()
+    return
 
 if __name__ == "__main__":
     sys.exit(main())
