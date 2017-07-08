@@ -20,6 +20,7 @@
 # along with nmaptocsv.  If not, see <http://www.gnu.org/licenses/>.
 
 # Global imports
+import io
 import sys
 import re
 import csv
@@ -29,6 +30,8 @@ import itertools
 
 # OptionParser imports
 from optparse import OptionParser
+
+PY2 = sys.version_info[0] == 2
 
 # Options definition
 OPTION_0 = {'name': ('-i', '--input'), 'help': 'Nmap scan output file (stdin if not specified)', 'nargs': 1}
@@ -86,6 +89,20 @@ P_GREPABLE = re.compile('(?P<whole_line>^Host:\s.*)')
 
 # Nmap Script Output
 P_SCRIPT = re.compile('^(?P<identifier>\|_?)(?P<whole_line>.*)')
+
+
+def cross_keys(d):
+    if PY2:
+        return d.iterkeys()
+    else:
+        return d.keys()
+
+
+def cross_zip(l):
+    if PY2:
+        return itertools.izip(*l)
+    else:
+        return zip(*l)
 
 
 # Handful functions
@@ -250,8 +267,8 @@ def parse(fd):
     last_host = None
     last_port = None
 
-    lines = [l.rstrip() for l in fd.readlines()]
-    for line in lines:
+    for line in fd.readlines():
+        line = line.rstrip()
 
         # 1st case: 	Nmap Normal Output
         # -- 1st action: Grab the IP
@@ -411,7 +428,7 @@ def generate_csv(fd, results, output_format, header, newline):
         csv_header = [format_item.upper() for format_item in output_format.split('-')]
         csv_file.writerow(csv_header)
 
-    for ip in sorted(results.iterkeys()):
+    for ip in sorted(cross_keys(results)):
         formatted_attribute_list = []
 
         for index, format_item in enumerate(output_format.split('-')):
@@ -420,7 +437,7 @@ def generate_csv(fd, results, output_format, header, newline):
 
         formatted_attribute_list = repeat_attributes(formatted_attribute_list)
 
-        for line_to_write in itertools.izip(*formatted_attribute_list):
+        for line_to_write in cross_zip(formatted_attribute_list):
             csv_file.writerow(list(line_to_write))
 
         # Print a newline on host change, if asked
@@ -449,14 +466,14 @@ def main():
     options, arguments = process_args()
 
     output_format = DEFAULT_FORMAT if not options.format else options.format
-    fd_input = sys.stdin if not options.input else open(options.input, 'rb')
+    fd_input = sys.stdin if not options.input else io.open(options.input, encoding='utf-8', mode='r')
 
     results = parse(fd_input)
     fd_input.close()
 
     newline = YES_NEWLINE if options.newline else NO_NEWLINE
     header = NO_HEADER if options.skip_header else YES_HEADER
-    fd_output = sys.stdout if not options.output else open(options.output, 'wb')
+    fd_output = sys.stdout if not options.output else io.open(options.output, encoding='utf-8', mode='w')
 
     generate_csv(fd_output, results, output_format, header, newline)
     fd_output.close()
