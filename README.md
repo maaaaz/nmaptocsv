@@ -7,20 +7,20 @@ A simple python script to convert Nmap output to CSV
 
 Features
 --------
-* Support of Nmap version 5, 6, 7 normal format output (default format)
-* Support of Nmap any version Grepable format output (-oG)
-* Parsing main information : IP, FQDN, MAC address and vendor, open ports, tcp/udp protocols, listening services and versions, OS, Number of hops to the target
+* Support of Nmap version 5, 6, 7 normal format output (default format, `-oN` option)
+* Support of Nmap any version Grepable format output (`-oG` option)
+* Parsing main information : IP, FQDN, MAC address and vendor, open ports, tcp/udp protocols, listening services and versions, OS, Number of hops to the target, and script output
 * Custom output format following the main items
 
 Usage
 -----
-Pass the Nmap output via stdin or from a specified file (-i).  
-The processed dump can be collected at stdout or to a specified file (-o).
+Pass the Nmap output via stdin or from a specified file (`-i`).  
+The processed dump can be collected at stdout or to a specified file (`-o`).
 
 ### Options
 ```
 Usage: nmaptocsv.py [options]
-Version: 1.1
+Version: 1.2
 
 Options:
   -h, --help            show this help message and exit
@@ -34,8 +34,9 @@ Options:
                         CSV output filename (stdout if not specified)
     -f FORMAT, --format=FORMAT
                         CSV column format { fqdn, hop_number, ip, mac_address,
-                        mac_vendor, port, protocol, os, service, version }
-                        (default: ip-fqdn-port-protocol-service-version)
+                        mac_vendor, port, protocol, os, script, service,
+                        version } (default: ip-fqdn-port-protocol-service-
+                        version)
     -d DELIMITER, --delimiter=DELIMITER
                         CSV output delimiter (default ";"). Ex: -d ","
     -n, --no-newline    Do not insert a newline between each host. By default,
@@ -127,6 +128,7 @@ Dependencies and installation
 
 Changelog
 ---------
+* version 1.2 - 01/07/2018: script output parsing addition
 * version 1.1 - 01/07/2018: Cleaning the code, fixing some parsing bugs, delimiter option addition and made newline default
 * version 1.0 - from 2012 to 2013
 

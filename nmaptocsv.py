@@ -28,7 +28,7 @@ import socket
 import itertools
 
 # Script version
-VERSION = '1.1'
+VERSION = '1.2'
 
 # OptionParser imports
 from optparse import OptionParser
@@ -43,7 +43,7 @@ mandatory_grp.add_option('-i', '--input', help='Nmap scan output file (stdin if 
 
 output_grp = OptionGroup(parser, 'Output parameters')
 output_grp.add_option('-o', '--output', help='CSV output filename (stdout if not specified)', nargs=1)
-output_grp.add_option('-f', '--format', help='CSV column format { fqdn, hop_number, ip, mac_address, mac_vendor, port, protocol, os, service, version } (default: ip-fqdn-port-protocol-service-version)', default='ip-fqdn-port-protocol-service-version', nargs=1)
+output_grp.add_option('-f', '--format', help='CSV column format { fqdn, hop_number, ip, mac_address, mac_vendor, port, protocol, os, script, service, version } (default: ip-fqdn-port-protocol-service-version)', default='ip-fqdn-port-protocol-service-version', nargs=1)
 output_grp.add_option('-d', '--delimiter', help='CSV output delimiter (default ";"). Ex: -d ","', default=';', nargs=1)
 output_grp.add_option('-n', '--no-newline', help='Do not insert a newline between each host. By default, a newline is added for better readability', action='store_true', default=False)
 output_grp.add_option('-s', '--skip-header', help='Do not print the CSV header', action='store_true', default=False)
@@ -68,6 +68,9 @@ p_port_header = re.compile('^(?P<port>PORT)\s+(?P<state>STATE)\s+(?P<service>SER
 #-- Port finding
 p_port_without_reason = re.compile('^(?P<number>[\d]+)\/(?P<protocol>tcp|udp)\s+(?:open|open\|filtered)\s+(?P<service>[\w\S]*)(?:\s*(?P<version>.*))?$')
 p_port_with_reason = re.compile('^(?P<number>[\d]+)\/(?P<protocol>tcp|udp)\s+(?:open|open\|filtered)\s+(?P<service>[\w\S]*)\s+(?P<reason>.* ttl [\d]+)\s+(?:\s*(?P<version>.*))$')
+
+#-- Script output finding
+p_script = re.compile('^\|[\s|\_](?P<script>.*)$')
 
 #-- MAC address
 p_mac = re.compile('MAC Address:\s(?P<mac_addr>(%s))\s\((?P<mac_vendor>.*)\)' % p_mac_elementary)
@@ -193,6 +196,15 @@ class Host:
                 result.append(port.get_version())
         return result
 
+    def get_port_script_list(self):
+        if not(self.get_port_list()):
+            return ['']
+        else:
+            result = []
+            for port in self.get_port_list():
+                result.append(port.get_script())
+        return result
+    
     def get_os(self):
         return str(self.os)
     
@@ -220,11 +232,12 @@ class Host:
         self.network_distance = network_distance
 
 class Port:
-    def __init__(self, number, protocol, service, version):
+    def __init__(self, number, protocol, service, version, script=''):
         self.number = number
         self.protocol = protocol
         self.service = service
         self.version = version
+        self.script = script
     
     def get_number(self):
         return self.number
@@ -237,6 +250,12 @@ class Port:
     
     def get_version(self):
         return self.version
+    
+    def get_script(self):
+        return self.script.strip()
+    
+    def set_script(self, script):
+        self.script = script
 
 def split_grepable_match(raw_string):
     """
@@ -292,11 +311,13 @@ def parse(fd):
         
         @rtype : return a list of <Host> objects indexed from their numerical IP representation
     """
-    global p_ip_elementary, p_ip, p_port_without_reason, p_port_with_reason, p_grepable
+    global p_ip_elementary, p_ip, p_port_without_reason, p_port_with_reason, p_grepable, p_script, p_mac, p_os, p_network_dist
     
     IPs = {}
     last_host = None
     p_port = p_port_without_reason
+    in_script_line = False
+    script = ''
     
     lines = [l.rstrip() for l in fd.readlines()]
     for line in lines:
@@ -330,7 +351,23 @@ def parse(fd):
         
         
         # 1st case:     Nmap Normal Output
-        #-- 3nd action: Grab the port
+        #-- 3rd action: Grab the script output
+        script_line = p_script.search(line)
+        if script_line:
+            in_script_line = True
+            script = script + script_line.group('script') + '\n'
+        else:
+            # We were in a script output section, now it's finished
+            if in_script_line:
+                last_port = last_host.get_port_list()[-1]
+                last_port = last_port.set_script(script)
+                
+                # reseting trackers
+                in_script_line = False
+                script = ''
+        
+        # 1st case:     Nmap Normal Output
+        #-- 4th action: Grab the port
         port = p_port.search(line)
         if port and last_host != None:
             number = str(port.group('number'))
@@ -344,14 +381,14 @@ def parse(fd):
         
         
         # 1st case:     Nmap Normal Output
-        #-- 4th action: Grab the MAC address
+        #-- 5th action: Grab the MAC address
         mac = p_mac.search(line)
         if mac:
             last_host.set_mac(str(mac.group('mac_addr')), str(mac.group('mac_vendor')))
         
         
         # 1st case:     Nmap Normal Output  
-        #-- 5th action: Grab the OS detection
+        #-- 6th action: Grab the OS detection
         os = p_os.search(line)
         if os:
             last_host.set_os(str(os.group('os')))
@@ -386,7 +423,7 @@ def is_format_valid(fmt):
         
         @rtype : True or False
     """ 
-    supported_format_objects = [ 'fqdn', 'hop_number', 'ip', 'mac_address', 'mac_vendor', 'port', 'protocol', 'os', 'service', 'version' ]
+    supported_format_objects = [ 'fqdn', 'hop_number', 'ip', 'mac_address', 'mac_vendor', 'port', 'protocol', 'os', 'script', 'service', 'version' ]
     
     for fmt_object in fmt.split('-'):
         if not(fmt_object in supported_format_objects):
@@ -414,7 +451,8 @@ def formatted_item(host, format_item):
                     'port':                 host.get_port_number_list(),
                     'protocol':             host.get_port_protocol_list(),
                     'service':              host.get_port_service_list(),
-                    'version':              host.get_port_version_list()
+                    'version':              host.get_port_version_list(),
+                    'script':               host.get_port_script_list()
                      }
         
         if format_item in option_map.keys():
@@ -444,7 +482,7 @@ def generate_csv(fd, results, options):
         @param fd : output file descriptor, could be a true file or stdout
     """
     if results:
-        spamwriter = csv.writer(fd, delimiter=options.delimiter)
+        spamwriter = csv.writer(fd, delimiter=options.delimiter, quoting=csv.QUOTE_ALL)
         
         splitted_options_format = options.format.split('-')
         
@@ -490,7 +528,7 @@ def main():
     # Analysis  
     results = parse(fd_input)
     fd_input.close()
-    
+     
     # Output descriptor
     if options.output != None:
         fd_output = open(options.output, 'wb')
