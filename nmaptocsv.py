@@ -321,7 +321,7 @@ def parse(fd):
     
     lines = [l.rstrip() for l in fd.readlines()]
     for line in lines:
-        
+        line=line.decode('utf-8')#[python3] 
         # 1st case:     Nmap Normal Output
         #-- 1st action: Grab the IP
         IP = p_ip.search(line)
@@ -490,7 +490,7 @@ def generate_csv(fd, results, options):
             csv_header = [format_item.upper() for format_item in splitted_options_format]
             spamwriter.writerow(csv_header)
         
-        for IP in sorted(results.iterkeys()):
+        for IP in sorted(results.keys()):#[python3] no more "iter"
             formatted_attribute_list = []
             
             for index,format_item in enumerate(splitted_options_format):
@@ -499,7 +499,7 @@ def generate_csv(fd, results, options):
             
             formatted_attribute_list = repeat_attributes(formatted_attribute_list)
             
-            for line_to_write in itertools.izip(*formatted_attribute_list):
+            for line_to_write in zip(*formatted_attribute_list):#[python3] itertools.izip => zip
                 spamwriter.writerow(list(line_to_write))
             
             # Print a newline if asked
@@ -531,7 +531,7 @@ def main():
      
     # Output descriptor
     if options.output != None:
-        fd_output = open(options.output, 'wb')
+        fd_output = open(options.output, 'w')#w in place of wb
     else:
         # No output file specified, writing to stdout
         fd_output = sys.stdout
