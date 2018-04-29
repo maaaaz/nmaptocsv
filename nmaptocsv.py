@@ -531,7 +531,7 @@ def main():
      
     # Output descriptor
     if options.output != None:
-        fd_output = open(options.output, 'w')#w in place of wb
+        fd_output = open(options.output, 'w')#[python3]
     else:
         # No output file specified, writing to stdout
         fd_output = sys.stdout
