@@ -128,6 +128,7 @@ Dependencies and installation
 
 Changelog
 ---------
+* version 1.3 - 08/13/2018: fixing the README layout on PyPI
 * version 1.2 - 01/07/2018: script output parsing addition
 * version 1.1 - 01/07/2018: Cleaning the code, fixing some parsing bugs, delimiter option addition and made newline default
 * version 1.0 - from 2012 to 2013
