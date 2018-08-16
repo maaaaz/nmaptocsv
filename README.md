@@ -8,8 +8,8 @@ A simple python script to convert Nmap output to CSV
 Features
 --------
 * Support of Nmap version 5, 6, 7 normal format output (default format, `-oN` option)
-* Support of Nmap any version Grepable format output (`-oG` option)
-* Parsing main information : IP, FQDN, MAC address and vendor, open ports, tcp/udp protocols, listening services and versions, OS, Number of hops to the target, and script output
+* Support of Nmap any version Grepable format output (`-oG` option) and XML (`-oX`)
+* Parsing main information : IP, FQDN, rDNS, MAC address and vendor, open ports, tcp/udp protocols, listening services and versions, OS, Number of hops to the target, and script output
 * Custom output format following the main items
 
 Usage
@@ -19,24 +19,27 @@ The processed dump can be collected at stdout or to a specified file (`-o`).
 
 ### Options
 ```
-Usage: nmaptocsv.py [options]
-Version: 1.2
+Usage: nmaptocsv [options]
+Version: 1.4
 
 Options:
   -h, --help            show this help message and exit
 
   Mandatory parameters:
     -i INPUT, --input=INPUT
-                        Nmap scan output file (stdin if not specified)
+                        Nmap scan output file in normal (-oN) or Grepable
+                        (-oG) format (stdin if not specified)
+    -x XML_INPUT, --xml-input=XML_INPUT
+                        Nmap scan output file in XML (-oX) format
 
   Output parameters:
     -o OUTPUT, --output=OUTPUT
                         CSV output filename (stdout if not specified)
     -f FORMAT, --format=FORMAT
-                        CSV column format { fqdn, hop_number, ip, mac_address,
-                        mac_vendor, port, protocol, os, script, service,
-                        version } (default: ip-fqdn-port-protocol-service-
-                        version)
+                        CSV column format { fqdn, rdns, hop_number, ip,
+                        mac_address, mac_vendor, port, protocol, os, script,
+                        service, version } (default: ip-fqdn-port-protocol-
+                        service-version)
     -d DELIMITER, --delimiter=DELIMITER
                         CSV output delimiter (default ";"). Ex: -d ","
     -n, --no-newline    Do not insert a newline between each host. By default,
@@ -128,6 +131,7 @@ Dependencies and installation
 
 Changelog
 ---------
+* version 1.4 - 08/16/2018: few bugs fixed + XML parsing implementation
 * version 1.3 - 08/13/2018: fixing the README layout on PyPI
 * version 1.2 - 01/07/2018: script output parsing addition
 * version 1.1 - 01/07/2018: Cleaning the code, fixing some parsing bugs, delimiter option addition and made newline default
