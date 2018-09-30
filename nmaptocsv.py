@@ -29,7 +29,7 @@ import itertools
 import xml.etree.cElementTree as ET
 
 # Script version
-VERSION = '1.4'
+VERSION = '1.5'
 
 # OptionParser imports
 from optparse import OptionParser
@@ -46,6 +46,7 @@ mandatory_grp.add_option('-x', '--xml-input', help='Nmap scan output file in XML
 output_grp = OptionGroup(parser, 'Output parameters')
 output_grp.add_option('-o', '--output', help='CSV output filename (stdout if not specified)', nargs=1)
 output_grp.add_option('-f', '--format', help='CSV column format { fqdn, rdns, hop_number, ip, mac_address, mac_vendor, port, protocol, os, script, service, version } (default: ip-fqdn-port-protocol-service-version)', default='ip-fqdn-port-protocol-service-version', nargs=1)
+output_grp.add_option('-S', '--script', help='Adds the script column in output, alias for -f "ip-fqdn-port-protocol-service-version-script"', action='store_const', const='ip-fqdn-port-protocol-service-version-script')
 output_grp.add_option('-d', '--delimiter', help='CSV output delimiter (default ";"). Ex: -d ","', default=';', nargs=1)
 output_grp.add_option('-n', '--no-newline', help='Do not insert a newline between each host. By default, a newline is added for better readability', action='store_true', default=False)
 output_grp.add_option('-s', '--skip-header', help='Do not print the CSV header', action='store_true', default=False)
@@ -488,7 +489,7 @@ def parse_xml(xml_file):
                 new_port = Port(number, protocol)
                 
                 service = port.find('service')
-                if service:
+                if service != None:
                     service_name = service.get('name') if service.get('name') else ''
                     
                     service_product = service.get('product') if service.get('product') else ''
@@ -517,7 +518,7 @@ def parse_xml(xml_file):
             hop_number = len(host.findall('./trace/hop'))
             new_host.set_network_distance(hop_number)
                 
-        IPs[new_host.get_ip_num_format()] = new_host
+            IPs[new_host.get_ip_num_format()] = new_host
     
     return IPs
     
@@ -625,10 +626,13 @@ def main():
     options, arguments = parser.parse_args()
     
     # Supplied format
+    if options.script:
+        options.format = options.script
+    
     valid_format, unknown_items = is_format_valid(options.format)
     if not valid_format:
         parser.error("Please specify a valid output format: '%s' is invalid \n\
-         Supported objects are { fqdn, ip, mac_address, mac_vendor, port, protocol, os, service, version }" % ', '.join(unknown_items))
+         Supported objects are { fqdn, rdns, hop_number, ip, mac_address, mac_vendor, port, protocol, os, script, service, version }" % ', '.join(unknown_items))
     
     # Input selection
     if (options.input != None) and (options.xml_input != None):

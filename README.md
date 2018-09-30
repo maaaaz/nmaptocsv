@@ -19,8 +19,8 @@ The processed dump can be collected at stdout or to a specified file (`-o`).
 
 ### Options
 ```
-Usage: nmaptocsv [options]
-Version: 1.4
+Usage: nmaptocsv.py [options]
+Version: 1.5
 
 Options:
   -h, --help            show this help message and exit
@@ -40,6 +40,8 @@ Options:
                         mac_address, mac_vendor, port, protocol, os, script,
                         service, version } (default: ip-fqdn-port-protocol-
                         service-version)
+    -S, --script        Adds the script column in output, alias for -f "ip-
+                        fqdn-port-protocol-service-version-script"
     -d DELIMITER, --delimiter=DELIMITER
                         CSV output delimiter (default ";"). Ex: -d ","
     -n, --no-newline    Do not insert a newline between each host. By default,
@@ -131,6 +133,7 @@ Dependencies and installation
 
 Changelog
 ---------
+* version 1.5 - 09/30/2018: few bugs fixed in XML parsing + script alias format added
 * version 1.4 - 08/16/2018: few bugs fixed + XML parsing implementation
 * version 1.3 - 08/13/2018: fixing the README layout on PyPI
 * version 1.2 - 01/07/2018: script output parsing addition
