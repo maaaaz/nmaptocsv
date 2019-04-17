@@ -128,9 +128,8 @@ IP;FQDN;PORT;PROTOCOL;SERVICE;VERSION
 
 Dependencies and installation
 -----------------------------
-* Python 2 (compatibility with Python 3 is in progress)
-* The **easiest way** to setup everything: `pip install nmaptocsv` and then directly use `$ nmaptocsv`
-* Or git clone that repository
+* Python 2
+* git clone that repository
 
 Changelog
 ---------
