@@ -134,7 +134,7 @@ Dependencies and installation
 
 Changelog
 ---------
-* version 2.0 - 17/04/2019: added state (open/filtered) to result + option for show only open ports (--open) @mmorenodev
+* version 2.0 - 17/04/2019: added state (open/filtered) to result + option for show only open ports (--open)
 * version 1.5 - 09/30/2018: few bugs fixed in XML parsing + script alias format added
 * version 1.4 - 08/16/2018: few bugs fixed + XML parsing implementation
 * version 1.3 - 08/13/2018: fixing the README layout on PyPI
