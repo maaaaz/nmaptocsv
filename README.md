@@ -20,7 +20,7 @@ The processed dump can be collected at stdout or to a specified file (`-o`).
 ### Options
 ```
 Usage: nmaptocsv.py [options]
-Version: 1.5
+Version: 2.0
 
 Options:
   -h, --help            show this help message and exit
@@ -47,16 +47,17 @@ Options:
     -n, --no-newline    Do not insert a newline between each host. By default,
                         a newline is added for better readability
     -s, --skip-header   Do not print the CSV header
+    -O, --open          Print only open ports
 ```
 
 ### Nmap Normal format (default output format -oN)
 ```
-$ python nmaptocsv.py -i test.nmap -f ip-fqdn-port-protocol-service-version-os
+$ python nmaptocsv.py -i test.nmap -f ip-fqdn-port-protocol-state-service-version-os
 IP;FQDN;PORT;PROTOCOL;SERVICE;VERSION;OS
-192.168.1.2;Test.lan;135;tcp;msrpc;Microsoft Windows RPC;Windows 7 Professional 7601 Service Pack 1 (Windows 7 Professional 6.1)
-192.168.1.2;Test.lan;139;tcp;netbios-ssn;;Windows 7 Professional 7601 Service Pack 1 (Windows 7 Professional 6.1)
-192.168.1.2;Test.lan;445;tcp;netbios-ssn;;Windows 7 Professional 7601 Service Pack 1 (Windows 7 Professional 6.1)
-192.168.1.2;Test.lan;5357;tcp;http;Microsoft HTTPAPI httpd 2.0 (SSDP/UPnP);Windows 7 Professional 7601 Service Pack 1 (Windows 7 Professional 6.1)
+192.168.1.2;Test.lan;135;tcp;open;msrpc;Microsoft Windows RPC;Windows 7 Professional 7601 Service Pack 1 (Windows 7 Professional 6.1)
+192.168.1.2;Test.lan;139;tcp;open;netbios-ssn;;Windows 7 Professional 7601 Service Pack 1 (Windows 7 Professional 6.1)
+192.168.1.2;Test.lan;445;tcp;open;netbios-ssn;;Windows 7 Professional 7601 Service Pack 1 (Windows 7 Professional 6.1)
+192.168.1.2;Test.lan;5357;tcp;filtered;http;Microsoft HTTPAPI httpd 2.0 (SSDP/UPnP);Windows 7 Professional 7601 Service Pack 1 (Windows 7 Professional 6.1)
 
 
 $ python nmaptocsv.py -i test.nmap -f ip-fqdn-port-protocol-service-version -d ',' | csvlook
@@ -127,12 +128,12 @@ IP;FQDN;PORT;PROTOCOL;SERVICE;VERSION
 
 Dependencies and installation
 -----------------------------
-* Python 2 (compatibility with Python 3 is in progress)
-* The **easiest way** to setup everything: `pip install nmaptocsv` and then directly use `$ nmaptocsv`
-* Or git clone that repository
+* Python 2
+* git clone that repository
 
 Changelog
 ---------
+* version 2.0 - 17/04/2019: added state (open/filtered) to result + option for show only open ports (--open)
 * version 1.5 - 09/30/2018: few bugs fixed in XML parsing + script alias format added
 * version 1.4 - 08/16/2018: few bugs fixed + XML parsing implementation
 * version 1.3 - 08/13/2018: fixing the README layout on PyPI
@@ -154,3 +155,4 @@ If not, see http://www.gnu.org/licenses/.
 Contact
 -------
 * Thomas Debize < tdebize at mail d0t com >
+* Matias Moreno @mmorenodev (twitter)
