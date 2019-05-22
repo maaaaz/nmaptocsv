@@ -82,7 +82,7 @@ p_script = re.compile('^\|[\s|\_](?P<script>.*)$')
 p_mac = re.compile('MAC Address:\s(?P<mac_addr>(%s))\s\((?P<mac_vendor>.*)\)' % p_mac_elementary)
 
 #-- OS detection (pattern order is important, the latter position the more precise and reliable the information is)
-p_os = re.compile('(?:^Service Info: OS|^OS|\s+OS|^OS details|smb-os-discovery|\|):\s(?P<os>[^;]+)')
+p_os = re.compile('(?:^Service Info: OS|^OS CPE|\s+OS|^OS details|smb-os-discovery|\|):\s(?P<os>[^;]+)')
 
 #-- Network distance
 p_network_dist = re.compile('Network Distance:\s(?P<hop_number>\d+)\shops?')
