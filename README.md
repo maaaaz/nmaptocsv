@@ -19,34 +19,34 @@ The processed dump can be collected at stdout or to a specified file (`-o`).
 
 ### Options
 ```
-Usage: nmaptocsv.py [options]
-Version: 1.5
+usage: nmaptocsv [-h] [-i INPUT] [-x XML_INPUT] [-o OUTPUT] [-f FORMAT] [-S]
+                 [-d DELIMITER] [-n] [-s]
 
-Options:
+optional arguments:
   -h, --help            show this help message and exit
 
-  Mandatory parameters:
-    -i INPUT, --input=INPUT
+Mandatory parameters:
+  -i INPUT, --input INPUT
                         Nmap scan output file in normal (-oN) or Grepable
                         (-oG) format (stdin if not specified)
-    -x XML_INPUT, --xml-input=XML_INPUT
+  -x XML_INPUT, --xml-input XML_INPUT
                         Nmap scan output file in XML (-oX) format
 
-  Output parameters:
-    -o OUTPUT, --output=OUTPUT
+Output parameters:
+  -o OUTPUT, --output OUTPUT
                         CSV output filename (stdout if not specified)
-    -f FORMAT, --format=FORMAT
+  -f FORMAT, --format FORMAT
                         CSV column format { fqdn, rdns, hop_number, ip,
                         mac_address, mac_vendor, port, protocol, os, script,
                         service, version } (default: ip-fqdn-port-protocol-
                         service-version)
-    -S, --script        Adds the script column in output, alias for -f "ip-
+  -S, --script          Adds the script column in output, alias for -f "ip-
                         fqdn-port-protocol-service-version-script"
-    -d DELIMITER, --delimiter=DELIMITER
+  -d DELIMITER, --delimiter DELIMITER
                         CSV output delimiter (default ";"). Ex: -d ","
-    -n, --no-newline    Do not insert a newline between each host. By default,
+  -n, --no-newline      Do not insert a newline between each host. By default,
                         a newline is added for better readability
-    -s, --skip-header   Do not print the CSV header
+  -s, --skip-header     Do not print the CSV header
 ```
 
 ### Nmap Normal format (default output format -oN)
@@ -127,12 +127,14 @@ IP;FQDN;PORT;PROTOCOL;SERVICE;VERSION
 
 Dependencies and installation
 -----------------------------
-* Python 2 (compatibility with Python 3 is in progress)
+* A Python interpreter with version 2.7 or 3.X
+  * Python 2.6 works with .nmap and .gnmap files but not with .xml ones
 * The **easiest way** to setup everything: `pip install nmaptocsv` and then directly use `$ nmaptocsv`
-* Or git clone that repository
+  * Or git clone that repository and `pip install -r requirements.txt` and then `python nmaptocsv.py`
 
 Changelog
 ---------
+* version 1.6 - 06/13/2019: Python 3 support
 * version 1.5 - 09/30/2018: few bugs fixed in XML parsing + script alias format added
 * version 1.4 - 08/16/2018: few bugs fixed + XML parsing implementation
 * version 1.3 - 08/13/2018: fixing the README layout on PyPI

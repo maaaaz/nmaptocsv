@@ -1,9 +1,9 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 
 # This file is part of nmaptocsv.
 #
-# Copyright (C) 2012, 2018 Thomas Debize <tdebize at mail.com>
+# Copyright (C) 2012, 2019 Thomas Debize <tdebize at mail.com>
 # All rights reserved.
 #
 # nmaptocsv is free software: you can redistribute it and/or modify
@@ -19,6 +19,10 @@
 # You should have received a copy of the GNU Lesser General Public License
 # along with nmaptocsv.  If not, see <http://www.gnu.org/licenses/>.
 
+from __future__ import absolute_import
+from __future__ import division
+from __future__ import print_function
+
 # Global imports
 import sys
 import re
@@ -26,70 +30,75 @@ import csv
 import struct
 import socket
 import itertools
+import argparse
 import xml.etree.cElementTree as ET
 
+# Python 2 and 3 compatibility
+if (sys.version_info < (3, 0)):
+    izip = itertools.izip
+    fd_read_options = 'rb'
+    fd_write_options = 'wb'
+else:
+    izip = zip
+    fd_read_options = 'r'
+    fd_write_options = 'w'
+
 # Script version
-VERSION = '1.5'
-
-# OptionParser imports
-from optparse import OptionParser
-from optparse import OptionGroup
+VERSION = '1.6'
 
 # Options definition
-parser = OptionParser(usage="%prog [options]\nVersion: " + VERSION)
+parser = argparse.ArgumentParser()
 
 # Options definition
-mandatory_grp = OptionGroup(parser, 'Mandatory parameters')
-mandatory_grp.add_option('-i', '--input', help='Nmap scan output file in normal (-oN) or Grepable (-oG) format (stdin if not specified)', nargs=1)
-mandatory_grp.add_option('-x', '--xml-input', help='Nmap scan output file in XML (-oX) format', nargs=1)
+mandatory_grp = parser.add_argument_group('Mandatory parameters')
+mandatory_grp.add_argument('-i', '--input', help = 'Nmap scan output file in normal (-oN) or Grepable (-oG) format (stdin if not specified)')
+mandatory_grp.add_argument('-x', '--xml-input', help = 'Nmap scan output file in XML (-oX) format')
 
-output_grp = OptionGroup(parser, 'Output parameters')
-output_grp.add_option('-o', '--output', help='CSV output filename (stdout if not specified)', nargs=1)
-output_grp.add_option('-f', '--format', help='CSV column format { fqdn, rdns, hop_number, ip, mac_address, mac_vendor, port, protocol, os, script, service, version } (default: ip-fqdn-port-protocol-service-version)', default='ip-fqdn-port-protocol-service-version', nargs=1)
-output_grp.add_option('-S', '--script', help='Adds the script column in output, alias for -f "ip-fqdn-port-protocol-service-version-script"', action='store_const', const='ip-fqdn-port-protocol-service-version-script')
-output_grp.add_option('-d', '--delimiter', help='CSV output delimiter (default ";"). Ex: -d ","', default=';', nargs=1)
-output_grp.add_option('-n', '--no-newline', help='Do not insert a newline between each host. By default, a newline is added for better readability', action='store_true', default=False)
-output_grp.add_option('-s', '--skip-header', help='Do not print the CSV header', action='store_true', default=False)
-
-parser.option_groups.extend([mandatory_grp, output_grp])
+output_grp = parser.add_argument_group('Output parameters')
+output_grp.add_argument('-o', '--output', help = 'CSV output filename (stdout if not specified)')
+output_grp.add_argument('-f', '--format', help = 'CSV column format { fqdn, rdns, hop_number, ip, mac_address, mac_vendor, port, protocol, os, script, service, version } (default: ip-fqdn-port-protocol-service-version)', default = 'ip-fqdn-port-protocol-service-version')
+output_grp.add_argument('-S', '--script', help = 'Adds the script column in output, alias for -f "ip-fqdn-port-protocol-service-version-script"', action = 'store_const', const = 'ip-fqdn-port-protocol-service-version-script')
+output_grp.add_argument('-d', '--delimiter', help = 'CSV output delimiter (default ";"). Ex: -d ","', default = ';')
+output_grp.add_argument('-n', '--no-newline', help = 'Do not insert a newline between each host. By default, a newline is added for better readability', action = 'store_true', default = False)
+output_grp.add_argument('-s', '--skip-header', help = 'Do not print the CSV header', action = 'store_true', default = False)
 
 # Handful patterns
 #-- IP regex
-p_ip_elementary = '(?:[\d]{1,3})\.(?:[\d]{1,3})\.(?:[\d]{1,3})\.(?:[\d]{1,3})'
-p_mac_elementary = '[0-9a-fA-F][0-9a-fA-F]:){5}([0-9a-fA-F][0-9a-fA-F]'
+p_ip_elementary = r'(?:[\d]{1,3})\.(?:[\d]{1,3})\.(?:[\d]{1,3})\.(?:[\d]{1,3})'
+p_mac_elementary = r'[0-9a-fA-F][0-9a-fA-F]:){5}([0-9a-fA-F][0-9a-fA-F]'
 
 # Nmap Normal Output patterns
 #-- Target
-p_ip_nmap5 = 'Interesting.*on\s(?:(?P<fqdn_nmap5>.*) (?=\((?P<ip_nmap5>%s)\)))|Interesting.*on\s(?P<ip_only_nmap5>.*)\:' % p_ip_elementary
-p_ip_nmap6 = 'Nmap.*for\s(?:(?P<fqdn_nmap6>.*) (?=\((?P<ip_nmap6>%s)\)))|Nmap.*for\s(?P<ip_only_nmap6>%s)$' % (p_ip_elementary, p_ip_elementary)
+p_ip_nmap5 = r'Interesting.*on\s(?:(?P<fqdn_nmap5>.*) (?=\((?P<ip_nmap5>%s)\)))|Interesting.*on\s(?P<ip_only_nmap5>.*)\:' % p_ip_elementary
+p_ip_nmap6 = r'Nmap.*for\s(?:(?P<fqdn_nmap6>.*) (?=\((?P<ip_nmap6>%s)\)))|Nmap.*for\s(?P<ip_only_nmap6>%s)$' % (p_ip_elementary, p_ip_elementary)
 
 p_ip = re.compile('%s|%s' % (p_ip_nmap5, p_ip_nmap6))
 
 #-- rDNS
-p_rdns = re.compile('rDNS record for (?P<ip>%s):\s(?P<rdns>.*)$' % p_ip_elementary)
+p_rdns = re.compile(r'rDNS record for (?P<ip>%s):\s(?P<rdns>.*)$' % p_ip_elementary)
 
 #-- Port header
-p_port_header = re.compile('^(?P<port>PORT)\s+(?P<state>STATE)\s+(?P<service>SERVICE)\s+(?P<reason>REASON\s*)?(?P<version>VERSION$)?')
+p_port_header = re.compile(r'^(?P<port>PORT)\s+(?P<state>STATE)\s+(?P<service>SERVICE)\s+(?P<reason>REASON\s*)?(?P<version>VERSION$)?')
 
 #-- Port finding
-p_port_without_reason = re.compile('^(?P<number>[\d]+)\/(?P<protocol>tcp|udp)\s+(?:open|open\|filtered)\s+(?P<service>[\w\S]*)(?:\s*(?P<version>.*))?$')
-p_port_with_reason = re.compile('^(?P<number>[\d]+)\/(?P<protocol>tcp|udp)\s+(?:open|open\|filtered)\s+(?P<service>[\w\S]*)\s+(?P<reason>.* ttl [\d]+)\s*(?:\s*(?P<version>.*))$')
+p_port_without_reason = re.compile(r'^(?P<number>[\d]+)\/(?P<protocol>tcp|udp)\s+(?:open|open\|filtered)\s+(?P<service>[\w\S]*)(?:\s*(?P<version>.*))?$')
+p_port_with_reason = re.compile(r'^(?P<number>[\d]+)\/(?P<protocol>tcp|udp)\s+(?:open|open\|filtered)\s+(?P<service>[\w\S]*)\s+(?P<reason>.* ttl [\d]+)\s*(?:\s*(?P<version>.*))$')
 
 #-- Script output finding
-p_script = re.compile('^\|[\s|\_](?P<script>.*)$')
+p_script = re.compile(r'^\|[\s|\_](?P<script>.*)$')
 
 #-- MAC address
-p_mac = re.compile('MAC Address:\s(?P<mac_addr>(%s))\s\((?P<mac_vendor>.*)\)' % p_mac_elementary)
+p_mac = re.compile(r'MAC Address:\s(?P<mac_addr>(%s))\s\((?P<mac_vendor>.*)\)' % p_mac_elementary)
 
 #-- OS detection (pattern order is important, the latter position the more precise and reliable the information is)
-p_os = re.compile('(?:^Service Info: OS|^OS|\s+OS|^OS details|smb-os-discovery|\|):\s(?P<os>[^;]+)')
+p_os = re.compile(r'(?:^Service Info: OS|^OS CPE|\s+OS|^OS details|smb-os-discovery|\|):\s(?P<os>[^;]+)')
 
 #-- Network distance
-p_network_dist = re.compile('Network Distance:\s(?P<hop_number>\d+)\shops?')
+p_network_dist = re.compile(r'Network Distance:\s(?P<hop_number>\d+)\shops?')
 
 # Nmap Grepable output 
 #-- Target, Ports
-p_grepable = re.compile('(?P<whole_line>^Host:\s.*)')
+p_grepable = re.compile(r'(?P<whole_line>^Host:\s.*)')
 
 
 # Handful functions
@@ -131,7 +140,7 @@ def extract_matching_pattern(regex, group_name, unfiltered_list):
         @rtype : the string value
     """
     result = ''
-    filtered_list = filter(regex.search, unfiltered_list)
+    filtered_list = list(filter(regex.search, unfiltered_list))
     
     if len(filtered_list) == 1:
         filtered_string = ''.join(filtered_list)
@@ -289,9 +298,9 @@ def split_grepable_match(raw_string):
     splitted_fields = raw_string.split("\t")
     
     # Patterns
-    p_host = re.compile('Host:\s(?P<ip>%s)\s+\((?P<fqdn>|.*)\)' % p_ip_elementary) 
-    p_ports = re.compile('Ports:\s+(?P<ports>.*)/')
-    p_os = re.compile('OS:\s(?P<os>.*)')
+    p_host = re.compile(r'Host:\s(?P<ip>%s)\s+\((?P<fqdn>|.*)\)' % p_ip_elementary) 
+    p_ports = re.compile(r'Ports:\s+(?P<ports>.*)/')
+    p_os = re.compile(r'OS:\s(?P<os>.*)')
     
     # Extracted named-group matches
     IP_str = extract_matching_pattern(p_host, 'ip', splitted_fields)
@@ -456,7 +465,7 @@ def parse_xml(xml_file):
         tree = ET.ElementTree(file=xml_file)
         root = tree.getroot()
     except ET.ParseError as e:
-        print "[!] An error has occurred while parsing the XML file: '%s'.\nExiting" % e
+        print("[!] An error has occurred while parsing the XML file: '%s'.\nExiting" % e)
         return None
     
     for host in root.findall('host'):
@@ -572,7 +581,7 @@ def formatted_item(host, format_item):
         else:
             return ''
     else:
-        return []   
+        return []
 
 def repeat_attributes(attribute_list):
     """
@@ -602,7 +611,8 @@ def generate_csv(fd, results, options):
             csv_header = [format_item.upper() for format_item in splitted_options_format]
             spamwriter.writerow(csv_header)
         
-        for IP in sorted(results.iterkeys()):
+        # for IP in sorted(results.iterkeys())
+        for IP in sorted(results):
             formatted_attribute_list = []
             
             for index,format_item in enumerate(splitted_options_format):
@@ -611,7 +621,7 @@ def generate_csv(fd, results, options):
             
             formatted_attribute_list = repeat_attributes(formatted_attribute_list)
             
-            for line_to_write in itertools.izip(*formatted_attribute_list):
+            for line_to_write in izip(*formatted_attribute_list):
                 spamwriter.writerow(list(line_to_write))
             
             # Print a newline if asked
@@ -623,7 +633,7 @@ def generate_csv(fd, results, options):
 def main():
     global parser
     
-    options, arguments = parser.parse_args()
+    options = parser.parse_args()
     
     # Supplied format
     if options.script:
@@ -643,7 +653,7 @@ def main():
     
     elif options.xml_input == None:
         if options.input != None:
-            fd_input = open(options.input, 'rb')
+            fd_input = open(options.input, fd_read_options)
         else:
         # No input file specified, reading from stdin
             fd_input = sys.stdin
@@ -654,7 +664,7 @@ def main():
      
     # Output descriptor
     if options.output != None:
-        fd_output = open(options.output, 'wb')
+        fd_output = open(options.output, fd_write_options)
     else:
         # No output file specified, writing to stdout
         fd_output = sys.stdout
