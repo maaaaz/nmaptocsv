@@ -20,7 +20,7 @@ The processed dump can be collected at stdout or to a specified file (`-o`).
 ### Options
 ```
 usage: nmaptocsv [-h] [-i INPUT] [-x XML_INPUT] [-o OUTPUT] [-f FORMAT] [-S]
-                 [-d DELIMITER] [-n] [-s]
+                 [-d DELIMITER] [-n] [-s] [-e]
 
 optional arguments:
   -h, --help            show this help message and exit
@@ -47,6 +47,7 @@ Output parameters:
   -n, --no-newline      Do not insert a newline between each host. By default,
                         a newline is added for better readability
   -s, --skip-header     Do not print the CSV header
+  -e, --exclude         Exclude hosts with no results from output
 ```
 
 ### Nmap Normal format (default output format -oN)
@@ -134,6 +135,7 @@ Dependencies and installation
 
 Changelog
 ---------
+* version 1.7 - 09/09/2021: added argument and logic to exclude empty results from output (@jasonmpittman)
 * version 1.6 - 06/13/2019: Python 3 support
 * version 1.5 - 09/30/2018: few bugs fixed in XML parsing + script alias format added
 * version 1.4 - 08/16/2018: few bugs fixed + XML parsing implementation
