@@ -44,7 +44,7 @@ else:
     fd_write_options = 'w'
 
 # Script version
-VERSION = '1.6'
+VERSION = '1.7'
 
 # Options definition
 parser = argparse.ArgumentParser()
@@ -61,6 +61,9 @@ output_grp.add_argument('-S', '--script', help = 'Adds the script column in outp
 output_grp.add_argument('-d', '--delimiter', help = 'CSV output delimiter (default ";"). Ex: -d ","', default = ';')
 output_grp.add_argument('-n', '--no-newline', help = 'Do not insert a newline between each host. By default, a newline is added for better readability', action = 'store_true', default = False)
 output_grp.add_argument('-s', '--skip-header', help = 'Do not print the CSV header', action = 'store_true', default = False)
+
+# added 'exclusion' argument to drop empty results from output bu @jasonmpittman
+output_grp.add_argument('-e', '--exclude', help = 'Exclude hosts with no results from output', action = 'store_true', default = False)
 
 # Handful patterns
 #-- IP regex
@@ -448,9 +451,8 @@ def parse(fd):
                 IPs[new_host.get_ip_num_format()] = new_host
                 
                 last_host = new_host
-    
-    return IPs
 
+    return IPs
 
 def parse_xml(xml_file):
     """
@@ -621,8 +623,17 @@ def generate_csv(fd, results, options):
             
             formatted_attribute_list = repeat_attributes(formatted_attribute_list)
             
-            for line_to_write in izip(*formatted_attribute_list):
-                spamwriter.writerow(list(line_to_write))
+            #added to exclude empty results from an IP by @jasonmpittman
+            if not options.exclude:
+                for line_to_write in izip(*formatted_attribute_list):
+                    spamwriter.writerow(list(line_to_write))
+            else:
+                for line_to_write in izip(*formatted_attribute_list):
+                    count = line_to_write.count("")
+                    if count < 6:
+                        spamwriter.writerow(list(line_to_write))
+                    else:
+                        pass
             
             # Print a newline if asked
             if not options.no_newline:
