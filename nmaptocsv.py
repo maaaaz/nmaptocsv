@@ -56,7 +56,7 @@ mandatory_grp.add_argument('-x', '--xml-input', help = 'Nmap scan output file in
 
 output_grp = parser.add_argument_group('Output parameters')
 output_grp.add_argument('-o', '--output', help = 'CSV output filename (stdout if not specified)')
-output_grp.add_argument('-f', '--format', help = 'CSV column format { fqdn, rdns, hop_number, ip, mac_address, mac_vendor, port, protocol, os, script, service, version } (default: ip-fqdn-port-protocol-service-version)', default = 'ip-fqdn-port-protocol-service-version')
+output_grp.add_argument('-f', '--format', help = 'CSV column format { fqdn, rdns, hop_number, ip, mac_address, mac_vendor, port, protocol, os, script, service, version } (default: ip-fqdn-port-protocol-service-version)', default = 'ip-fqdn-port-protocol-service-state-version')
 output_grp.add_argument('-S', '--script', help = 'Adds the script column in output, alias for -f "ip-fqdn-port-protocol-service-version-script"', action = 'store_const', const = 'ip-fqdn-port-protocol-service-version-script')
 output_grp.add_argument('-d', '--delimiter', help = 'CSV output delimiter (default ";"). Ex: -d ","', default = ';')
 output_grp.add_argument('-n', '--no-newline', help = 'Do not insert a newline between each host. By default, a newline is added for better readability', action = 'store_true', default = False)
@@ -81,7 +81,7 @@ p_rdns = re.compile(r'rDNS record for (?P<ip>%s):\s(?P<rdns>.*)$' % p_ip_element
 p_port_header = re.compile(r'^(?P<port>PORT)\s+(?P<state>STATE)\s+(?P<service>SERVICE)\s+(?P<reason>REASON\s*)?(?P<version>VERSION$)?')
 
 #-- Port finding
-p_port_without_reason = re.compile(r'^(?P<number>[\d]+)\/(?P<protocol>tcp|udp)\s+(?:open|open\|filtered)\s+(?P<service>[\w\S]*)(?:\s*(?P<version>.*))?$')
+p_port_without_reason = re.compile(r'^(?P<number>[\d]+)\/(?P<protocol>tcp|udp)\s+(?P<state>open|open\|filtered)\s+(?P<service>[\w\S]*)(?:\s*(?P<version>.*))?$')
 p_port_with_reason = re.compile(r'^(?P<number>[\d]+)\/(?P<protocol>tcp|udp)\s+(?:open|open\|filtered)\s+(?P<service>[\w\S]*)\s+(?P<reason>.* ttl [\d]+)\s*(?:\s*(?P<version>.*))$')
 
 #-- Script output finding
@@ -206,6 +206,15 @@ class Host:
                 result.append(port.get_service())
         return result
 
+    def get_port_state_list(self):
+        if not(self.get_port_list()):
+            return ['']
+        else:
+            result = []
+            for port in self.get_port_list():
+                result.append(port.get_state())
+        return result
+
     def get_port_version_list(self):
         if not(self.get_port_list()):
             return ['']
@@ -254,10 +263,11 @@ class Host:
         self.network_distance = network_distance
 
 class Port:
-    def __init__(self, number, protocol, service='', version='', script=''):
+    def __init__(self, number, protocol, service='', state='', version='', script=''):
         self.number = number
         self.protocol = protocol
         self.service = service
+        self.state = state
         self.version = version
         self.script = script
     
@@ -266,6 +276,9 @@ class Port:
         
     def get_protocol(self):
         return self.protocol
+
+    def get_state(self):
+        return self.state
     
     def get_service(self):
         return self.service
@@ -278,6 +291,9 @@ class Port:
     
     def set_service(self, service):
         self.service = service
+    
+    def set_state(self, state):
+        self.state = state
     
     def set_version(self, version):
         self.version = version
@@ -325,7 +341,7 @@ def split_grepable_match(raw_string):
         # remove potential leading and trailing slashes on version
         version = version.strip('/')
         
-        new_port = Port(number, protocol, service, version)
+        new_port = Port(number, protocol, service, state, version)
         
         current_host.add_port(new_port)
     
@@ -409,9 +425,10 @@ def parse(fd):
             number = str(port.group('number'))
             protocol = str(port.group('protocol'))
             service = str(port.group('service'))
+            state = str(port.group('state'))
             version = str(port.group('version'))
                         
-            new_port = Port(number, protocol, service, version)
+            new_port = Port(number, protocol, service, state, version)
             
             last_host.add_port(new_port)
         
@@ -539,7 +556,7 @@ def is_format_valid(fmt):
         
         @rtype : True or False
     """ 
-    supported_format_objects = [ 'fqdn', 'rdns', 'hop_number', 'ip', 'mac_address', 'mac_vendor', 'port', 'protocol', 'os', 'script', 'service', 'version' ]
+    supported_format_objects = [ 'fqdn', 'rdns', 'hop_number', 'ip', 'mac_address', 'mac_vendor', 'port', 'protocol', 'os', 'script', 'service', 'version', 'state' ]
     unknown_items = []
     
     for fmt_object in fmt.split('-'):
@@ -572,6 +589,7 @@ def formatted_item(host, format_item):
                     'port':                 host.get_port_number_list(),
                     'protocol':             host.get_port_protocol_list(),
                     'service':              host.get_port_service_list(),
+                    'state':                host.get_port_state_list(),
                     'version':              host.get_port_version_list(),
                     'script':               host.get_port_script_list()
                      }
